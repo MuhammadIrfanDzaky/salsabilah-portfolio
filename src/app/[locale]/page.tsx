@@ -26,14 +26,16 @@ export default async function Page({
         {ui.skipToContent[locale]}
       </a>
       <Header locale={locale} />
-      <main id="main" className="flex-1 outline-none" tabIndex={-1}>
-        <Hero locale={locale} />
-        <About locale={locale} />
-        <Publications locale={locale} />
-        <Experience locale={locale} />
-        <Contact locale={locale} />
-      </main>
-      <Footer locale={locale} />
+      <div className="page-content flex flex-1 flex-col">
+        <main id="main" className="flex-1 outline-none" tabIndex={-1}>
+          <Hero locale={locale} />
+          <About locale={locale} />
+          <Publications locale={locale} />
+          <Experience locale={locale} />
+          <Contact locale={locale} />
+        </main>
+        <Footer locale={locale} />
+      </div>
     </div>
   );
 }
