@@ -6,7 +6,7 @@ const sections = ["about", "publications", "experience", "contact"] as const;
 export function Footer({ locale }: { locale: Locale }) {
   return (
     <footer className="border-t border-line-on-green bg-green-deep text-on-green">
-      <div className="mx-auto max-w-[1160px] px-6 pb-9 pt-11">
+      <div className="mx-auto max-w-[1160px] px-6 pb-[112px] pt-11 md:pb-9">
         <div className="mb-8 flex justify-center">
           <svg width="150" height="26" viewBox="0 0 150 26" fill="none" aria-hidden="true">
             <line x1="0" y1="13" x2="56" y2="13" stroke="var(--line-on-green)" strokeWidth="1" />
