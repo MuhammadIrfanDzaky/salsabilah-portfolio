@@ -2,6 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 export function ThemeToggle({ label }: { label: string }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -11,12 +12,25 @@ export function ThemeToggle({ label }: { label: string }) {
 
   const isDark = mounted && resolvedTheme === "dark";
 
+  const toggleTheme = () => {
+    const apply = () => setTheme(isDark ? "light" : "dark");
+    // Cross-fade the whole page between themes where the browser supports it.
+    if (
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      document.startViewTransition(() => flushSync(apply));
+    } else {
+      apply();
+    }
+  };
+
   return (
     <button
       type="button"
       aria-label={label}
       aria-pressed={isDark}
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={toggleTheme}
       className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-line bg-surface text-green transition-colors hover:border-sage dark:text-sand"
     >
       {isDark ? (
