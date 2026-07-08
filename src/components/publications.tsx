@@ -15,12 +15,13 @@ export function Publications({ locale }: { locale: Locale }) {
           />
           <a
             href={profile.cvPath}
-            download
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2.5 rounded-full bg-accent-strong px-6 py-3 text-[15px] font-semibold text-on-accent no-underline transition-colors hover:bg-green hover:text-on-green"
           >
-            <span>{ui.publications.downloadCv[locale]}</span>
+            <span>{ui.publications.resume[locale]}</span>
             <span aria-hidden="true" className="font-mono">
-              ↓
+              ↗
             </span>
           </a>
         </div>
@@ -57,27 +58,6 @@ export function Publications({ locale }: { locale: Locale }) {
             </li>
           ))}
         </ol>
-
-        <figure className="m-0 mt-[clamp(32px,4vw,48px)] overflow-hidden rounded-[18px] border border-line bg-surface shadow-soft">
-          <figcaption className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-            <span className="font-serif text-[18px] font-semibold text-ink">
-              {ui.publications.cvPreviewTitle[locale]}
-            </span>
-            <span className="text-[13.5px] text-muted">{ui.publications.cvPreviewNote[locale]}</span>
-          </figcaption>
-          <iframe
-            src={profile.cvPath}
-            loading="lazy"
-            title={ui.publications.cvPreviewTitle[locale]}
-            className="block h-[560px] w-full border-0"
-          />
-          <p className="m-0 border-t border-line px-5 py-3 text-[13.5px] text-muted">
-            {ui.publications.cvFallback[locale]}{" "}
-            <a href={profile.cvPath} download className="text-accent-strong underline">
-              {ui.publications.downloadCv[locale]}
-            </a>
-          </p>
-        </figure>
       </div>
     </section>
   );
