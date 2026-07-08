@@ -1,26 +1,138 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #faf7f0;
+  --surface: #ffffff;
+  --green: #2e4a38;
+  --green-deep: #26402f;
+  --sage: #7e9a82;
+  --sand: #d8c6a3;
+  --ink: #20261e;
+  --muted: #57604f;
+  --accent: #b5643c;
+  --accent-strong: #8f4b28;
+  --on-accent: #fbf5e9;
+  --on-green: #f2eee1;
+  --on-green-soft: rgba(242, 238, 225, 0.82);
+  --on-green-strong: #fbf8ef;
+  --line: rgba(46, 74, 56, 0.14);
+  --line-on-green: rgba(216, 198, 163, 0.3);
+  --paper-pubs: #f6f1e3;
+  --paper-exp: #eff3ec;
+  --hero-from: #f2ecdc;
+  --hero-mid: #faf7f0;
+  --hero-to: #efefe0;
+  --nav-text: #39443b;
+  --shadow-soft: 0 1px 2px rgba(32, 38, 30, 0.04), 0 18px 44px -22px rgba(46, 74, 56, 0.24);
+}
+
+.dark {
+  --paper: #141913;
+  --surface: #1d241b;
+  --green: #24382b;
+  --green-deep: #1a2a20;
+  --sage: #8fae93;
+  --sand: #c9b790;
+  --ink: #eae6d9;
+  --muted: #aab3a1;
+  --accent: #d08b62;
+  --accent-strong: #dd9d75;
+  --on-accent: #2a1608;
+  --on-green: #ede9dc;
+  --on-green-soft: rgba(237, 233, 220, 0.8);
+  --on-green-strong: #f8f5ea;
+  --line: rgba(201, 183, 144, 0.18);
+  --line-on-green: rgba(201, 183, 144, 0.3);
+  --paper-pubs: #171d14;
+  --paper-exp: #151c15;
+  --hero-from: #1a2018;
+  --hero-mid: #141913;
+  --hero-to: #151c12;
+  --nav-text: #c4cbba;
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 44px -22px rgba(0, 0, 0, 0.55);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-green: var(--green);
+  --color-green-deep: var(--green-deep);
+  --color-sage: var(--sage);
+  --color-sand: var(--sand);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-on-green: var(--on-green);
+  --color-on-green-soft: var(--on-green-soft);
+  --color-on-green-strong: var(--on-green-strong);
+  --color-line: var(--line);
+  --color-line-on-green: var(--line-on-green);
+  --color-paper-pubs: var(--paper-pubs);
+  --color-paper-exp: var(--paper-exp);
+  --color-nav-text: var(--nav-text);
+  --font-serif: var(--font-fraunces), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-inter), "Manrope", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+  --shadow-soft: var(--shadow-soft);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-padding-top: 84px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--sand);
+  color: var(--green-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+section[id="contact"] :focus-visible,
+footer :focus-visible {
+  outline-color: var(--sand);
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+::placeholder {
+  color: inherit;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
