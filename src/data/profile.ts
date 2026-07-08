@@ -329,16 +329,7 @@ export const ui = {
       id: "Prosiding telaah sejawat, poster, dan karya tercatat tentang perdagangan dan daya saing komoditas pertanian Indonesia.",
     },
     view: { en: "View", id: "Lihat" },
-    downloadCv: { en: "Download CV (PDF)", id: "Unduh CV (PDF)" },
-    cvPreviewTitle: { en: "Curriculum Vitae", id: "Daftar Riwayat Hidup" },
-    cvPreviewNote: {
-      en: "Preview of my full CV — download it above.",
-      id: "Pratinjau CV lengkap saya — unduh di atas.",
-    },
-    cvFallback: {
-      en: "If the preview does not load in your browser, you can always",
-      id: "Jika pratinjau tidak tampil di peramban Anda, silakan",
-    },
+    resume: { en: "My Resume (PDF)", id: "Resume Saya (PDF)" },
   },
   experienceSection: {
     kicker: { en: "03 · Experience", id: "03 · Pengalaman" },
