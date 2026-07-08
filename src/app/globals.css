@@ -80,8 +80,33 @@
   --shadow-soft: var(--shadow-soft);
 }
 
+/* Exactly the sticky header height (h-[68px]), so an anchored section's top
+   border lands flush against the header's bottom border. */
 html {
-  scroll-padding-top: 84px;
+  scroll-padding-top: 68px;
+}
+
+/* Locale-switch transition: content softly fades/blurs out, the new locale
+   renders while hidden, then fades back in (class toggled in header.tsx). */
+.page-content {
+  transition:
+    opacity 280ms ease,
+    transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    filter 280ms ease;
+}
+
+html.page-leaving .page-content {
+  opacity: 0;
+  transform: translateY(10px);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+/* Theme-switch cross-fade via the View Transitions API. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 400ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -134,5 +159,10 @@ button {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
