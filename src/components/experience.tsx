@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/section-heading";
 export function Experience({ locale }: { locale: Locale }) {
   return (
     <section id="experience" className="border-t border-line bg-paper-exp">
-      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(52px,6vw,72px)]">
+      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(32px,4vw,48px)]">
         <div className="mb-[clamp(28px,4vw,40px)]">
           <SectionHeading
             kicker={ui.experienceSection.kicker}

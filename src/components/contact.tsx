@@ -11,7 +11,7 @@ export function Contact({ locale }: { locale: Locale }) {
 
   return (
     <section id="contact" className="bg-green text-on-green">
-      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(52px,6vw,72px)]">
+      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(32px,4vw,48px)]">
         <div className="mb-[clamp(30px,4vw,44px)]">
           <SectionHeading
             kicker={ui.contact.kicker}

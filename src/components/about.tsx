@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/section-heading";
 export function About({ locale }: { locale: Locale }) {
   return (
     <section id="about" className="border-t border-line bg-surface">
-      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(52px,6vw,72px)]">
+      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(32px,4vw,48px)]">
         <div className="mb-[clamp(26px,3.5vw,38px)]">
           <SectionHeading kicker={ui.about.kicker} title={ui.about.title} locale={locale} />
         </div>

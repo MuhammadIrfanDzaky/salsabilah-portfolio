@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/section-heading";
 export function Publications({ locale }: { locale: Locale }) {
   return (
     <section id="publications" className="border-t border-line bg-paper-pubs">
-      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(52px,6vw,72px)]">
+      <div className="mx-auto max-w-[1160px] px-6 py-[clamp(32px,4vw,48px)]">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <SectionHeading
             kicker={ui.publications.kicker}

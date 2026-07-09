@@ -37,41 +37,41 @@ export function Hero({ locale }: { locale: Locale }) {
       }}
     >
       <FieldLines />
-      <div className="relative mx-auto max-w-[1160px] px-6 pb-[clamp(88px,10vw,124px)] pt-[clamp(48px,6vw,88px)]">
-        <div className="grid items-center gap-[clamp(36px,6vw,80px)] lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+      <div className="relative mx-auto max-w-[1160px] px-6 pb-[clamp(88px,10vw,124px)] pt-[clamp(48px,6vw,88px)] max-lg:flex max-lg:min-h-[calc(100svh-68px)] max-lg:flex-col max-lg:justify-center max-lg:pb-[96px] max-lg:pt-3 short:pb-[88px] short:pt-2">
+        <div className="grid items-center gap-[clamp(36px,6vw,80px)] max-lg:gap-4 short:gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
           <div>
-            <p className="mb-5 flex items-center gap-3.5">
+            <p className="mb-5 flex items-center gap-3.5 max-lg:mb-2.5 short:mb-2">
               <span className="h-px w-9 flex-none bg-sand" />
-              <span className="font-mono text-[12.5px] uppercase tracking-[0.16em] text-accent-strong">
+              <span className="font-mono text-[12.5px] uppercase tracking-[0.16em] text-accent-strong max-lg:text-[11px] short:text-[10px]">
                 {profile.kicker[locale]}
               </span>
             </p>
-            <h1 className="mb-5 font-serif text-[clamp(42px,7vw,80px)] font-semibold leading-[1.03] tracking-[-0.015em] text-ink [text-wrap:balance]">
+            <h1 className="mb-5 font-serif text-[clamp(42px,7vw,80px)] font-semibold leading-[1.03] tracking-[-0.015em] text-ink [text-wrap:balance] max-lg:mb-3 max-lg:text-[clamp(32px,8.5vw,46px)] short:mb-2 short:text-[clamp(26px,7vw,36px)]">
               {profile.displayName}
             </h1>
-            <p className="mb-4 font-serif text-[clamp(19px,2.4vw,23px)] font-medium italic leading-[1.4] text-green dark:text-sage">
+            <p className="mb-4 font-serif text-[clamp(19px,2.4vw,23px)] font-medium italic leading-[1.4] text-green max-lg:mb-2.5 max-lg:text-[17px] short:mb-2 short:text-[15px] dark:text-sage">
               {profile.role[locale]}
             </p>
-            <p className="mb-8 max-w-[56ch] text-[17px] text-muted [text-wrap:pretty]">
+            <p className="mb-8 max-w-[56ch] text-[17px] text-muted [text-wrap:pretty] max-lg:mb-4 max-lg:text-[15px] short:mb-3 short:text-[13.5px]">
               {profile.tagline[locale]}
             </p>
             <div className="flex flex-wrap items-center gap-3.5">
               <a
                 href="#publications"
-                className="inline-flex items-center rounded-full bg-accent-strong px-7 py-3 text-[15.5px] font-semibold text-on-accent no-underline transition-colors hover:bg-green hover:text-on-green"
+                className="inline-flex items-center rounded-full bg-accent-strong px-7 py-3 text-[15.5px] font-semibold text-on-accent no-underline transition-colors hover:bg-green hover:text-on-green short:px-5 short:py-2 short:text-[14px]"
               >
                 {ui.hero.cta1[locale]}
               </a>
               <a
                 href="#contact"
-                className="inline-flex items-center rounded-full border border-green/40 px-7 py-3 text-[15.5px] font-semibold text-green no-underline transition-colors hover:bg-sage/20 dark:border-sage/40 dark:text-sage"
+                className="inline-flex items-center rounded-full border border-green/40 px-7 py-3 text-[15.5px] font-semibold text-green no-underline transition-colors hover:bg-sage/20 short:px-5 short:py-2 short:text-[14px] dark:border-sage/40 dark:text-sage"
               >
                 {ui.hero.cta2[locale]}
               </a>
             </div>
           </div>
-          <div className="relative min-w-0">
-            <figure className="relative mx-auto my-0 aspect-[4/5] w-[min(360px,86%)] overflow-hidden rounded-[190px_190px_18px_18px] border border-sage/50 shadow-soft lg:ml-auto lg:mr-0">
+          <div className="relative min-w-0 max-lg:order-first">
+            <figure className="relative mx-auto my-0 aspect-[4/5] w-[min(360px,86%)] overflow-hidden rounded-[190px_190px_18px_18px] border border-sage/50 shadow-soft max-lg:w-[min(52vw,24vh)] short:w-[min(42vw,19vh)] lg:ml-auto lg:mr-0">
               <Image
                 src={profile.photo}
                 alt={ui.hero.photoAlt[locale]}
