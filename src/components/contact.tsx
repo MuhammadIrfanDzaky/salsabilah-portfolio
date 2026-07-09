@@ -23,7 +23,17 @@ export function Contact({ locale }: { locale: Locale }) {
         </div>
         <div className="grid items-start gap-[clamp(32px,5vw,64px)] md:grid-cols-2">
           <dl className="m-0 flex flex-col">
+
             <div className="flex items-baseline gap-4 border-b border-line-on-green pb-3">
+              <dt className="w-[118px] flex-none font-mono text-[11px] uppercase tracking-[0.12em] text-sand">
+                {ui.contact.institutionLabel[locale]}
+              </dt>
+              <dd className="m-0 min-w-0 text-[15.5px] text-on-green">
+                {profile.institution[locale]}
+              </dd>
+            </div>
+
+            <div className="flex items-baseline gap-4 border-b border-line-on-green py-3">
               <dt className="w-[118px] flex-none font-mono text-[11px] uppercase tracking-[0.12em] text-sand">
                 {ui.contact.emailLabel[locale]}
               </dt>
@@ -36,6 +46,7 @@ export function Contact({ locale }: { locale: Locale }) {
                 </a>
               </dd>
             </div>
+
             <div className="flex items-baseline gap-4 border-b border-line-on-green py-3">
               <dt className="w-[118px] flex-none font-mono text-[11px] uppercase tracking-[0.12em] text-sand">
                 {ui.contact.linkedinLabel[locale]}
@@ -51,14 +62,39 @@ export function Contact({ locale }: { locale: Locale }) {
                 </a>
               </dd>
             </div>
-            <div className="flex items-baseline gap-4 pt-3">
+
+            <div className="flex items-baseline gap-4 border-b border-line-on-green py-3">
               <dt className="w-[118px] flex-none font-mono text-[11px] uppercase tracking-[0.12em] text-sand">
-                {ui.contact.institutionLabel[locale]}
+                {ui.contact.orcidLabel[locale]}
               </dt>
-              <dd className="m-0 min-w-0 text-[15.5px] text-on-green">
-                {profile.institution[locale]}
+              <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">
+                <a
+                  href={profile.orcid}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[15.5px] text-on-green underline decoration-sand/60 hover:text-on-green-strong"
+                >
+                  {profile.orcid.replace("https://www.", "")}
+                </a>
               </dd>
             </div>
+
+            <div className="flex items-baseline gap-4 border-b border-line-on-green py-3">
+              <dt className="w-[118px] flex-none font-mono text-[11px] uppercase tracking-[0.12em] text-sand">
+                {ui.contact.scholarLabel[locale]}
+              </dt>
+              <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">
+                <a
+                  href={profile.scholar}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[15.5px] text-on-green underline decoration-sand/60 hover:text-on-green-strong"
+                >
+                  {profile.scholar.replace("https://www.", "")}
+                </a>
+              </dd>
+            </div>
+
           </dl>
 
           <form

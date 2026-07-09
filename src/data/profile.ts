@@ -35,6 +35,8 @@ export type Profile = {
   institution: Localized;
   email: string;
   linkedin: string;
+  orcid: string;
+  scholar: string;
   photo: string;
   cvPath: string;
   siteUrl: string;
@@ -129,6 +131,8 @@ export const profile: Profile = {
   },
   email: "ssalsabillah62@gmail.com",
   linkedin: "https://www.linkedin.com/in/salsabillah62",
+  orcid: "https://orcid.org/0009-0007-0867-8552",
+  scholar: "https://scholar.google.com/citations?hl=id&user=0uA99LwAAAAJ",
   photo: "/pfp_salsa.jpeg",
   cvPath: "/cv/Curriculum-Vitae-Salsabillah-2026.pdf",
   siteUrl: "https://salsabilah-portfolio.vercel.app",
@@ -352,6 +356,8 @@ export const ui = {
     },
     emailLabel: { en: "Email", id: "Email" },
     linkedinLabel: { en: "LinkedIn", id: "LinkedIn" },
+    orcidLabel: { en: "ORCID", id: "ORCID" },
+    scholarLabel: { en: "Google Scholar", id: "Google Scholar" },
     institutionLabel: { en: "Institution", id: "Institusi" },
     form: {
       title: { en: "Send a message", id: "Kirim pesan" },
@@ -377,8 +383,8 @@ export const ui = {
       id: "Ekonomi pertanian · Perdagangan internasional · Agribisnis",
     },
     rights: {
-      en: "© 2026 Salsabilah · All rights reserved.",
-      id: "© 2026 Salsabilah · Hak cipta dilindungi.",
+      en: "© 2026 jek · All rights reserved.",
+      id: "© 2026 jek · Hak cipta dilindungi.",
     },
   },
 } as const;
