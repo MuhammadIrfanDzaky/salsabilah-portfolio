@@ -302,6 +302,10 @@ export const ui = {
     id: "ID — Bahasa Indonesia",
   },
   themeToggle: { en: "Toggle dark mode", id: "Ganti mode gelap" },
+  menuLabel: { en: "Menu", id: "Menu" },
+  themeLabel: { en: "Theme", id: "Tema" },
+  themeLight: { en: "Light theme", id: "Tema terang" },
+  themeDark: { en: "Dark theme", id: "Tema gelap" },
   nav: {
     about: { en: "About", id: "Tentang" },
     publications: { en: "Publications", id: "Publikasi" },
