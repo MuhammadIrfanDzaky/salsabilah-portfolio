@@ -3,7 +3,8 @@
 - **Category:** `content` `+public-ugc` `+ai`
 - **Classified:** 2026-07-09 (re-klasifikasi; sebelumnya `portfolio`, lalu `content`)
 - **Last audit:** 2026-07-09
-- **Gates open:** 16 dari 21 blocking
+- **Gates open:** 14 dari 21 blocking
+- **Live:** `https://salsabilah.vercel.app` — blog masih tersembunyi (K7) sampai artikel asli pertama terbit
 - **Supabase project:** `htioqsxmbucefsfuiaro` (org `Jek`, region `ap-southeast-1`, $0/bulan)
 
 Situs: portfolio akademik Salsabilah + blog bilingual. One-pager lama tetap statis; blog
@@ -41,7 +42,7 @@ keputusan ini adalah beralih ke antrean moderasi.
 | 6 | Legal & Compliance | deferred | Naik ke blocking karena `+public-ugc`. Butuh aturan berkomentar, jalur pelaporan, proses takedown, dan catatan privasi (form kontak + analytics + IP komentar). **Reopen: Fase 2** |
 | 11 | SEO & Metadata | applied | Metadata per-locale + OG/Twitter + canonical + `hreflang`, OG image dinamis, `src/app/sitemap.ts` (10 URL dengan 20 alternate hreflang; indeks blog hanya masuk bila ada artikel terbit), `src/app/robots.ts` (menutup `/admin` dan `/api/`, menunjuk sitemap), structured data `BlogPosting` per artikel, dan RSS per bahasa di `/[locale]/feed.xml` — terbukti terparsing sebagai XML valid dengan `Content-Type: application/rss+xml` |
 | 12 | i18n / Timezone / Locale | deferred | Rute `/en` `/id` terbukti jalan. Tapi jadwal terbit membuat timezone jadi nyata: `published_at` disimpan UTC, ditulis/ditampilkan WIB. **Reopen: bersama skema tabel `posts`** |
-| 13 | Performance | deferred | Lighthouse 90/91 hanya berlaku untuk one-pager statis. Rute blog akan berbasis database. **Reopen: setelah rute blog ada — target tetap ≥90** |
+| 13 | Performance | applied | Diukur pada **deploy nyata** `https://salsabilah.vercel.app` (2026-07-26): `/en` Performance 94 · Accessibility 100 · Best Practices 100 · SEO 100; `/id` 96 pada run bersih. LCP stabil 2,5–2,8s, CLS 0. **Catatan:** skor sempat 66–83 pada beberapa run — penyebabnya TBT yang melonjak mengikuti beban CPU mesin pengukur, bukan situs (LCP tidak berubah). **Reopen: setelah halaman blog benar-benar terbit, karena rute berbasis database belum ikut terukur** |
 | 16 | Data Modeling | applied | `supabase/migrations/0001_init_blog.sql` diterapkan ke project. Constraint dideklarasikan di database, bukan hanya di aplikasi: gate terbit bilingual+reviewed, FK dengan `on delete restrict/cascade`, unique pada slug, PK gabungan pada `likes` untuk idempotensi, indeks pada semua kolom filter, dan `post_slug_history` untuk redirect 301. Terverifikasi via `list_tables`: 7 tabel, RLS aktif semua |
 | 18 | Data Validation | deferred | Blocking ganda (`+public-ugc` dan `+ai`): input komentar divalidasi server-side per tipe/panjang/konten, **dan** output model divalidasi terhadap skema sebelum dipakai. **Reopen: bersama route handler pertama** |
 | 19 | Data Lifecycle | deferred | Soft delete untuk komentar + riwayat moderasi; artikel di-unpublish, bukan dihapus. **Reopen: bersama skema** |
@@ -53,7 +54,7 @@ keputusan ini adalah beralih ke antrean moderasi.
 | 28 | Rate Limiting | deferred | Blocking ganda: pembatas abuse untuk komentar/like **dan** pembatas biaya untuk endpoint terjemahan. **Reopen: bersama endpoint publik pertama** |
 | 29 | Env & Secrets | deferred | `.env.example` sudah ada dan ikut repo (pengecualian `!.env.example` ditambahkan ke `.gitignore`, karena pola `.env*` tadinya ikut mengabaikannya). `.env.local` terbukti diabaikan git. `src/lib/supabase/env.ts` menggagalkan startup bila variabel hilang. Service key Supabase **sengaja tidak pernah diambil** — aplikasi memakai kunci publishable + RLS saja. **Sisa: `ANTHROPIC_API_KEY` belum diisi dan secret produksi belum ditaruh di managed store. Reopen: langkah 4 dan saat deploy** |
 | 34 | AI / LLM Integration | deferred | Plafon biaya per request, batas token, model & versi dipin, output diperlakukan sebagai input tak tepercaya, fallback saat provider mati. **Reopen: Fase 1, saat fitur terjemahan dibuat** |
-| 38 | Cache & CDN | deferred | Belum pernah deploy. Rencana: one-pager tetap statis, daftar artikel ISR dengan revalidate saat terbit. **Reopen: deploy pertama** |
+| 38 | Cache & CDN | applied | Terpasang di CDN Vercel sejak deploy 2026-07-26. One-pager tetap statis; rute blog dan sitemap memakai ISR `revalidate = 60`, dan cache data Supabase diselaraskan ke jendela yang sama (lihat catatan jebakan di bawah). Aset `_next/static` dilewati matcher middleware sehingga tidak menambah hop |
 | 46 | Error Handling | deferred | Halaman 404 khusus sudah ada (`src/app/not-found.tsx`): sadar bahasa dari sisi server, status 404 benar, `noindex`, dan mandiri dari `globals.css`. **Sisa (tetap blocking karena `+ai`): `error.tsx` untuk kegagalan runtime, plus fallback saat provider terjemahan timeout/outage/menolak. Reopen: bersama fitur terjemahan** |
 | 50 | Admin / Back-office | deferred | Inti dari K1. Wajib sebelum rilis: tulis/edit/draft/jadwal/terbit, unggah cover, tinjau terjemahan, serta hapus + pulihkan komentar. **Reopen: Fase 1** |
 
@@ -70,7 +71,7 @@ keputusan ini adalah beralih ke antrean moderasi.
 | 17 | Migrations | applied | Migrasi berversi di `supabase/migrations/` dan ikut ter-commit: `0001_init_blog.sql`, `0002_harden_functions.sql`. Isi file identik dengan yang diterapkan ke database |
 | 23 | Queues & Async | deferred | Dibuka kembali oleh jadwal terbit (K1). Rencana: Vercel Cron, bukan queue penuh. **Reopen: Fase 1** |
 | 30 | Dependency & Supply Chain | applied | `npm audit --omit=dev` → **0 kerentanan** (2026-07-09). Ditutup dengan `next@15.5.22` plus `overrides` di `package.json` yang memaksa `postcss@^8.5.23` dan `sharp@^0.35.3` — bump `next` saja ternyata tidak cukup karena advisory-nya menyasar dua dependensi bawaan itu. Lockfile ter-commit. **Catatan:** `overrides` harus ditinjau ulang setiap kali `next` di-upgrade, kalau-kalau sudah tidak diperlukan |
-| 35 | Hosting & Deployment | deferred | Belum pernah deploy; prosedur rollback belum ditulis. **Reopen: akhir Fase 1** |
+| 35 | Hosting & Deployment | applied | Live di `https://salsabilah.vercel.app` (project `prj_NFoCWbLv3XKCftBfKMONveSUFKkT`). Deploy otomatis tiap push ke `master`; build commit `5866677` selesai 50 detik. **Rollback:** Vercel → Deployments → pilih deployment lama bertanda *rollback candidate* → Promote to Production; deployment sebelumnya (`dpl_5cgx…`) masih tersedia sebagai titik balik |
 | 42 | Code Quality Automation | deferred | ESLint + TypeScript jalan saat build, belum dipaksakan otomatis. **Reopen: bersama CI** |
 | 43 | Automated Testing | deferred | Naik kepentingannya: penyaringan draft, fallback bahasa, dan otorisasi admin adalah logika yang layak diuji. **Reopen: Fase 1** |
 | 44 | Logging & Monitoring | deferred | Belum ada uptime check maupun pelacakan 404. **Reopen: setelah deploy; wajib setelah perubahan struktur URL** |
