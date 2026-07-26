@@ -135,7 +135,10 @@ export const profile: Profile = {
   scholar: "https://scholar.google.com/citations?hl=id&user=0uA99LwAAAAJ",
   photo: "/pfp_salsa.jpeg",
   cvPath: "/cv/Curriculum-Vitae-Salsabillah-2026.pdf",
-  siteUrl: "https://salsabilah-portfolio.vercel.app",
+  // Domain produksi. Dipakai untuk canonical, hreflang, OG image, sitemap, dan
+  // RSS — kalau salah, Google diberi tahu alamat yang keliru. Bisa ditimpa
+  // lewat NEXT_PUBLIC_SITE_URL saat pindah ke domain sendiri, tanpa ubah kode.
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://salsabilah.vercel.app",
   seo: {
     title: {
       en: "Salsabilah, S.P., M.P. — Agricultural Economist & Researcher",
@@ -348,7 +351,7 @@ export const ui = {
     },
   },
   contact: {
-    kicker: { en: "04 · Contact", id: "04 · Kontak" },
+    kicker: { en: "05 · Contact", id: "05 · Kontak" },
     title: { en: "Contact", id: "Kontak" },
     lead: {
       en: "For research collaboration, peer review, or advisory work — I would be glad to hear from you:",
@@ -385,6 +388,68 @@ export const ui = {
     rights: {
       en: "© 2026 jek · All rights reserved.",
       id: "© 2026 jek · Hak cipta dilindungi.",
+    },
+  },
+  blog: {
+    navLabel: { en: "Blog", id: "Blog" },
+    kicker: { en: "Writing", id: "Tulisan" },
+    title: { en: "Blog", id: "Blog" },
+    lead: {
+      en: "Notes on agricultural trade, commodity markets, and research life — written for a general audience.",
+      id: "Catatan tentang perdagangan pertanian, pasar komoditas, dan kehidupan riset — ditulis untuk pembaca umum.",
+    },
+    searchLabel: { en: "Search articles", id: "Cari artikel" },
+    searchPlaceholder: { en: "e.g. coconut, clove", id: "mis. kelapa, cengkeh" },
+    searchSubmit: { en: "Search", id: "Cari" },
+    allCategories: { en: "All", id: "Semua" },
+    readMore: { en: "Read", id: "Baca" },
+    minuteRead: { en: "min read", id: "menit baca" },
+    backToBlog: { en: "Back to all articles", id: "Kembali ke semua artikel" },
+    empty: {
+      en: "No articles yet.",
+      id: "Belum ada artikel.",
+    },
+    noResults: {
+      en: "No articles match that search.",
+      id: "Tidak ada artikel yang cocok dengan pencarian itu.",
+    },
+    resultCount: {
+      en: "article(s) found",
+      id: "artikel ditemukan",
+    },
+    publishedOn: { en: "Published", id: "Terbit" },
+    otherLanguageNotice: {
+      en: "This article is also available in Indonesian.",
+      id: "Artikel ini juga tersedia dalam bahasa Inggris.",
+    },
+    readInOther: {
+      en: "Baca dalam Bahasa Indonesia",
+      id: "Read in English",
+    },
+    latestKicker: { en: "04 · Writing", id: "04 · Tulisan" },
+    latestTitle: { en: "Recent writing", id: "Tulisan terbaru" },
+    latestLead: {
+      en: "Short pieces on agricultural trade and commodity markets, written for readers outside the field.",
+      id: "Tulisan ringkas tentang perdagangan pertanian dan pasar komoditas, untuk pembaca di luar bidang ini.",
+    },
+    viewAll: { en: "View all writing", id: "Lihat semua tulisan" },
+  },
+  notFound: {
+    code: { en: "404", id: "404" },
+    kicker: { en: "Page not found", id: "Halaman tidak ditemukan" },
+    title: {
+      en: "This page isn't here",
+      id: "Halaman ini tidak ada",
+    },
+    body: {
+      en: "The address may have changed, or the link that brought you here may be out of date. Nothing is broken on your side.",
+      id: "Alamatnya mungkin sudah berubah, atau tautan yang membawa Anda ke sini sudah tidak berlaku. Tidak ada yang salah dari sisi Anda.",
+    },
+    backHome: { en: "Back to home", id: "Kembali ke beranda" },
+    goContact: { en: "Get in touch", id: "Hubungi saya" },
+    chooseLanguage: {
+      en: "Choose a language to continue:",
+      id: "Pilih bahasa untuk melanjutkan:",
     },
   },
 } as const;

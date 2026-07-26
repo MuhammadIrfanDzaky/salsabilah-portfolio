@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { profile, ui } from "@/data/profile";
-import type { Locale } from "@/lib/i18n";
+import { sectionHref, type Locale } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const sections = ["about", "publications", "experience", "contact"] as const;
@@ -169,10 +169,13 @@ function LanguageSwitch({ locale, onSwitch }: { locale: Locale; onSwitch?: () =>
   );
 }
 
-export function Header({ locale }: { locale: Locale }) {
+export function Header({ locale, showBlog = false }: { locale: Locale; showBlog?: boolean }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<SectionId | null>(null);
   const visibleSections = useRef<Set<string>>(new Set());
+  const pathname = usePathname();
+  // The one-pager sections only exist on the locale root (e.g. "/en").
+  const onHome = pathname === `/${locale}`;
 
   // New locale content has committed: finish the language transition.
   useEffect(() => {
@@ -223,7 +226,10 @@ export function Header({ locale }: { locale: Locale }) {
     <>
       <header className="sticky top-0 z-50 border-b border-line bg-paper/80 backdrop-blur-md">
         <div className="mx-auto flex h-[68px] max-w-[1160px] items-center justify-between gap-4 px-6">
-          <a href="#hero" className="flex min-w-0 items-center gap-2.5 text-ink no-underline">
+          <a
+            href={onHome ? "#hero" : `/${locale}`}
+            className="flex min-w-0 items-center gap-2.5 text-ink no-underline"
+          >
             <SproutMark />
             <span className="truncate font-serif text-[19px] font-semibold tracking-[0.01em]">
               {profile.displayName}
@@ -234,7 +240,7 @@ export function Header({ locale }: { locale: Locale }) {
             {sections.map((s) => (
               <a
                 key={s}
-                href={`#${s}`}
+                href={sectionHref(locale, s, onHome)}
                 className={`border-b-2 py-1 text-[15px] font-medium transition-colors hover:border-accent hover:text-green dark:hover:text-sage ${
                   active === s
                     ? "border-accent text-green dark:text-sage"
@@ -244,6 +250,14 @@ export function Header({ locale }: { locale: Locale }) {
                 {ui.nav[s][locale]}
               </a>
             ))}
+            {showBlog && (
+              <Link
+                href={`/${locale}/blog`}
+                className="border-b-2 border-transparent py-1 text-[15px] font-medium text-nav-text no-underline transition-colors hover:border-accent hover:text-green dark:hover:text-sage"
+              >
+                {ui.blog.navLabel[locale]}
+              </Link>
+            )}
           </nav>
 
           <div className="hidden items-center gap-3 lg:flex">
@@ -267,6 +281,29 @@ export function Header({ locale }: { locale: Locale }) {
               : "pointer-events-none invisible translate-y-3 scale-[0.97] opacity-0"
           }`}
         >
+          {/* Blog lives in this panel rather than the bar itself, so the bar
+              keeps the five slots it was designed around. */}
+          {showBlog && (
+            <>
+              <Link
+                href={`/${locale}/blog`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-[15px] font-semibold text-ink no-underline hover:bg-surface"
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="flex-none">
+                  <path
+                    d="M4.6 3.4 H12 L15.4 6.8 V16.6 H4.6 Z M12 3.4 V6.8 H15.4 M7.2 10 H12.8 M7.2 13 H11"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {ui.blog.navLabel[locale]}
+              </Link>
+              <div className="mx-3 h-px bg-line" />
+            </>
+          )}
           <div className="flex items-center justify-between gap-3 px-3 py-2.5">
             <span className="text-[13px] font-semibold text-ink">{ui.languageLabel[locale]}</span>
             <LanguageSwitch locale={locale} onSwitch={() => setOpen(false)} />
@@ -283,7 +320,7 @@ export function Header({ locale }: { locale: Locale }) {
             {sections.map((s) => (
               <a
                 key={s}
-                href={`#${s}`}
+                href={sectionHref(locale, s, onHome)}
                 onClick={() => setOpen(false)}
                 aria-current={active === s ? "true" : undefined}
                 className={`${barItem(active === s)} no-underline`}

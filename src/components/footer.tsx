@@ -1,9 +1,19 @@
+import Link from "next/link";
 import { profile, ui } from "@/data/profile";
-import type { Locale } from "@/lib/i18n";
+import { sectionHref, type Locale } from "@/lib/i18n";
 
 const sections = ["about", "publications", "experience", "contact"] as const;
 
-export function Footer({ locale }: { locale: Locale }) {
+/** `onHome` is false on any page that does not render the one-pager sections. */
+export function Footer({
+  locale,
+  onHome = true,
+  showBlog = false,
+}: {
+  locale: Locale;
+  onHome?: boolean;
+  showBlog?: boolean;
+}) {
   return (
     <footer className="border-t border-line-on-green bg-green-deep text-on-green">
       <div className="mx-auto max-w-[1160px] px-6 pb-[112px] pt-11 lg:pb-9">
@@ -28,12 +38,20 @@ export function Footer({ locale }: { locale: Locale }) {
             {sections.map((s) => (
               <a
                 key={s}
-                href={`#${s}`}
+                href={sectionHref(locale, s, onHome)}
                 className="text-[13.5px] text-on-green-soft no-underline hover:text-sand"
               >
                 {ui.nav[s][locale]}
               </a>
             ))}
+            {showBlog && (
+              <Link
+                href={`/${locale}/blog`}
+                className="text-[13.5px] text-on-green-soft no-underline hover:text-sand"
+              >
+                {ui.blog.navLabel[locale]}
+              </Link>
+            )}
           </nav>
         </div>
         <p className="mb-0 mt-8 text-center font-mono text-[11.5px] tracking-[0.08em] text-on-green-soft">

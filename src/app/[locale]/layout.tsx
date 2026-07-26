@@ -47,6 +47,10 @@ export async function generateMetadata({
     alternates: {
       canonical: `/${locale}`,
       languages: { en: "/en", id: "/id" },
+      // Lets feed readers discover the blog from any page on the site.
+      types: {
+        "application/rss+xml": [{ url: `/${locale}/feed.xml`, title }],
+      },
     },
     openGraph: {
       type: "profile",
