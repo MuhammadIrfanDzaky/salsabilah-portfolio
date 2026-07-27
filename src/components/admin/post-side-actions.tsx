@@ -8,6 +8,7 @@ import { adminCopy } from "@/data/admin-copy";
 import {
   archivePost,
   deletePostPermanently,
+  generateTranslationDraft,
   markTranslationReviewed,
   restorePost,
   unpublish,
@@ -23,7 +24,16 @@ import type { PostStatus } from "@/lib/admin/status";
  * dan masing-masing aksi ini memanggil Server Action-nya sendiri.
  */
 
-function Submit({ label, variant = "ghost" }: { label: string; variant?: "ghost" | "danger" }) {
+function Submit({
+  label,
+  variant = "ghost",
+  busy,
+}: {
+  label: string;
+  variant?: "ghost" | "danger";
+  /** Label saat berjalan. Terjemahan bisa memakan puluhan detik — "Menyimpan…" akan menyesatkan. */
+  busy?: string;
+}) {
   const { pending } = useFormStatus();
   const classes =
     variant === "danger"
@@ -36,7 +46,7 @@ function Submit({ label, variant = "ghost" }: { label: string; variant?: "ghost"
       disabled={pending}
       className={`inline-flex items-center rounded-full bg-surface px-4 py-2 text-[14px] font-semibold transition-opacity hover:opacity-85 disabled:opacity-60 ${classes}`}
     >
-      {pending ? adminCopy.editor.saving : label}
+      {pending ? (busy ?? adminCopy.editor.saving) : label}
     </button>
   );
 }
@@ -114,13 +124,19 @@ export function TranslationPanel({
   postId,
   translationStatus,
   showSourceEditedWarning,
+  canGenerate,
 }: {
   postId: string;
   translationStatus: string;
   showSourceEditedWarning: boolean;
+  canGenerate: boolean;
 }) {
   const [state, formAction] = useActionState<ActionResult | null, FormData>(
     markTranslationReviewed,
+    null,
+  );
+  const [draftState, draftAction] = useActionState<ActionResult | null, FormData>(
+    generateTranslationDraft,
     null,
   );
   const reviewed = translationStatus === "reviewed";
@@ -149,19 +165,27 @@ export function TranslationPanel({
           </form>
         ) : null}
 
-        {/* Langkah 4. Dinonaktifkan, bukan disembunyikan, supaya jelas bahwa
-            fiturnya direncanakan dan bukan terlupakan. */}
-        <button
-          type="button"
-          disabled
-          title={adminCopy.editor.generateDraftSoon}
-          className="inline-flex cursor-not-allowed items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-muted opacity-60"
-        >
-          {adminCopy.editor.generateDraft}
-        </button>
+        {canGenerate ? (
+          <form action={draftAction}>
+            <input type="hidden" name="postId" value={postId} />
+            <Submit label={adminCopy.editor.generateDraft} busy={adminCopy.editor.generateDraftBusy} />
+          </form>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title={adminCopy.editor.generateDraftBlocked}
+            className="inline-flex cursor-not-allowed items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-muted opacity-60"
+          >
+            {adminCopy.editor.generateDraft}
+          </button>
+        )}
       </div>
 
-      <p className="m-0 mt-2 text-[12.5px] text-muted">{adminCopy.editor.generateDraftSoon}</p>
+      <p className="m-0 mt-2 text-[12.5px] leading-relaxed text-muted">
+        {canGenerate ? adminCopy.editor.generateDraftHint : adminCopy.editor.generateDraftBlocked}
+      </p>
+      <Pesan state={draftState} />
       <Pesan state={state} />
     </section>
   );

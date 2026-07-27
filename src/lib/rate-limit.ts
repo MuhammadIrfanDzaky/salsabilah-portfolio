@@ -76,4 +76,7 @@ export const RATE_LIMITS = {
   loginPerEmail: { limit: 5, windowSeconds: 15 * 60 },
   coverUpload: { limit: 20, windowSeconds: 60 * 60 },
   save: { limit: 120, windowSeconds: 60 * 60 },
+  // Setiap panggilan terjemahan berpotensi berbayar. Batas ini melengkapi
+  // plafon token bulanan: yang satu menahan lonjakan, yang lain menahan total.
+  translate: { limit: 30, windowSeconds: 60 * 60 },
 } as const;

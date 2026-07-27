@@ -67,8 +67,16 @@ Setiap artikel wajib lengkap dalam **kedua** bahasa sebelum bisa terbit. Alurnya
 2. Isi sisi terjemahannya.
 3. Baca ulang terjemahan itu, lalu tekan **Tandai terjemahan sudah ditinjau**.
 
-Tombol **Buat draft terjemahan** masih mati — terjemahan otomatis dibangun pada tahap
-berikutnya. Sampai saat itu, sisi terjemahan diisi manual.
+Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang perlu diketahui:
+
+- Hasilnya **selalu draft**. Sistem tidak pernah menandainya sudah ditinjau — itu hanya bisa
+  Anda lakukan, dan artikel tidak bisa terbit tanpanya.
+- Istilah di glosarium **diperiksa otomatis**. Kalau mesin ikut menerjemahkan istilah yang
+  seharusnya dibiarkan utuh, draftnya ditolak seluruhnya dan Anda diberi tahu istilah mana.
+- Hanya tersedia untuk artikel berstatus **draf**. Untuk artikel yang sudah terbit, tarik dulu
+  dari publik.
+- Kalau mesinnya sedang bermasalah, pesannya menjelaskan apa yang terjadi dan menulis manual
+  tetap bisa. Terjemahan otomatis tidak pernah menghalangi Anda bekerja.
 
 Kalau Anda mengubah teks sumber sebuah **draf** yang sudah ditandai ditinjau, tandanya
 otomatis dicabut — terjemahannya sudah tidak cocok lagi. Untuk artikel yang **sudah
@@ -170,8 +178,11 @@ Semuanya dijelaskan di [`.env.example`](./.env.example). Ringkasnya:
 | `NEXT_PUBLIC_SUPABASE_URL` | **ya** | Aplikasi gagal start tanpa ini |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | **ya** | Boleh terbaca browser; RLS yang menjaga data |
 | `RATE_LIMIT_SALT` | tidak | Menyamarkan alamat IP pada penghitung pembatas laju |
-| `ANTHROPIC_API_KEY` | belum | Untuk terjemahan otomatis, tahap berikutnya |
-| `TRANSLATION_MAX_OUTPUT_TOKENS` | belum | Plafon biaya per permintaan terjemahan |
+| `OPENROUTER_API_KEY` | tidak | Tanpa ini fitur terjemahan otomatis nonaktif; sisanya tetap jalan |
+| `OPENROUTER_MODEL` | tidak | Wajib bila kunci diisi. Tulis lengkap dengan penerbitnya, jangan alias |
+| `OPENROUTER_PROVIDER_ORDER` | tidak | Mengunci penyedia. Kosong = OpenRouter bebas berpindah |
+| `TRANSLATION_MAX_OUTPUT_TOKENS` | tidak | Plafon token untuk satu permintaan |
+| `TRANSLATION_MONTHLY_TOKEN_CAP` | tidak | Plafon token kumulatif per bulan kalender |
 
 **Service-role key Supabase sengaja tidak pernah dipakai di mana pun.** Aplikasi hanya
 memegang kunci publishable, dan seluruh otorisasi dijalankan Row Level Security di

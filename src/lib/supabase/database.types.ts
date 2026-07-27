@@ -196,6 +196,53 @@ export type Database = {
         Update: { bucket?: string; hits?: number; window_start?: string };
         Relationships: [];
       };
+      translation_runs: {
+        Row: {
+          created_at: string;
+          direction: string;
+          error_note: string | null;
+          id: string;
+          input_tokens: number;
+          model: string;
+          output_tokens: number;
+          post_id: string | null;
+          provider: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          direction: string;
+          error_note?: string | null;
+          id?: string;
+          input_tokens?: number;
+          model: string;
+          output_tokens?: number;
+          post_id?: string | null;
+          provider: string;
+          status: string;
+        };
+        Update: {
+          created_at?: string;
+          direction?: string;
+          error_note?: string | null;
+          id?: string;
+          input_tokens?: number;
+          model?: string;
+          output_tokens?: number;
+          post_id?: string | null;
+          provider?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "translation_runs_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       translation_glossary: {
         Row: { created_at: string; id: string; note: string | null; term: string };
         Insert: { created_at?: string; id?: string; note?: string | null; term: string };
@@ -230,6 +277,7 @@ export type Database = {
       };
       rename_post_slug: { Args: { p_new_slug: string; p_post_id: string }; Returns: undefined };
       toggle_like: { Args: { p_post_id: string; p_visitor_hash: string }; Returns: string };
+      translation_tokens_this_month: { Args: never; Returns: number };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

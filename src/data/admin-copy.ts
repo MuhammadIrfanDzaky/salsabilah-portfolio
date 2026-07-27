@@ -114,7 +114,11 @@ export const adminCopy = {
     translationReviewed: "Terjemahan sudah ditandai ditinjau.",
     markReviewed: "Tandai terjemahan sudah ditinjau",
     generateDraft: "Buat draft terjemahan",
-    generateDraftSoon: "Terjemahan otomatis belum aktif — dibangun pada langkah berikutnya.",
+    generateDraftBusy: "Menerjemahkan…",
+    generateDraftHint:
+      "Mesin menerjemahkan dari bahasa sumber ke bahasa satunya. Hasilnya selalu draft: baca ulang dan perbaiki sebelum menandainya sudah ditinjau. Istilah di glosarium diperiksa otomatis — kalau ada yang ikut diterjemahkan, draftnya ditolak.",
+    generateDraftBlocked:
+      "Tersedia untuk artikel berstatus draf. Tarik artikel dari publik dulu bila ingin membuat ulang terjemahannya.",
     sourceEditedWarning:
       "Anda mengubah teks sumber artikel yang sudah terbit. Periksa apakah terjemahannya masih cocok.",
 

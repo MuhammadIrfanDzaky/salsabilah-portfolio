@@ -7,6 +7,8 @@ import { requireAdmin, type ActionResult, type GuardResult } from "@/lib/admin/g
 import { publishNowDate } from "@/lib/admin/publish";
 import { CoverError, MAX_COVER_BYTES, buildCoverPath, processCoverImage } from "@/lib/covers";
 import { RATE_LIMITS, consumeRateLimit } from "@/lib/rate-limit";
+import type { Locale } from "@/lib/i18n";
+import { translateArticle } from "@/lib/translate";
 import type { TablesUpdate } from "@/lib/supabase/database.types";
 import { validatePostForm, type PostFormInput } from "@/lib/validation";
 
@@ -296,6 +298,126 @@ export async function deletePostPermanently(
 
   revalidatePublic();
   redirect("/admin?tab=archived");
+}
+
+/**
+ * Membuat draft terjemahan lewat LLM (langkah 4, K2).
+ *
+ * Hanya untuk artikel yang masih draf. Menimpa terjemahan artikel yang sudah
+ * terbit berarti menyetel `translation_status` kembali ke 'generated', dan
+ * constraint terbit menolak itu — pernyataannya akan gagal di tengah jalan.
+ * Menariknya dari publik lebih dulu adalah urutan yang benar, bukan halangan.
+ */
+export async function generateTranslationDraft(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return { ok: false, message: TIDAK_BERWENANG };
+
+  const postId = String(formData.get("postId") ?? "").trim();
+  if (!postId) return { ok: false, message: "Artikel tidak ditemukan." };
+
+  // Pembatas biaya sebelum pembatas apa pun yang lain: setiap panggilan di
+  // balik titik ini berpotensi berbayar.
+  const withinLimit = await consumeRateLimit(
+    `terjemah:${guard.userId}`,
+    RATE_LIMITS.translate.limit,
+    RATE_LIMITS.translate.windowSeconds,
+  );
+  if (!withinLimit) {
+    return { ok: false, message: "Terlalu banyak permintaan terjemahan. Coba lagi dalam satu jam." };
+  }
+
+  const { data: post, error: loadError } = await guard.supabase
+    .from("posts")
+    .select(
+      "id, status, source_locale, translation_status, title_id, title_en, excerpt_id, excerpt_en, body_id, body_en, cover_alt_id, cover_alt_en",
+    )
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (loadError) return { ok: false, message: describeDbError(loadError, "muat-terjemahan") };
+  if (!post) return { ok: false, message: "Artikel tidak ditemukan." };
+
+  if (post.status !== "draft") {
+    return {
+      ok: false,
+      message:
+        "Tarik artikel dari publik dulu. Draft terjemahan baru selalu berstatus belum ditinjau, dan artikel terbit tidak boleh berada dalam keadaan itu.",
+    };
+  }
+
+  const sourceLocale: Locale = post.source_locale === "en" ? "en" : "id";
+  const targetLocale: Locale = sourceLocale === "id" ? "en" : "id";
+
+  const outcome = await translateArticle(
+    {
+      postId,
+      sourceLocale,
+      targetLocale,
+      title: (sourceLocale === "id" ? post.title_id : post.title_en) ?? "",
+      excerpt: (sourceLocale === "id" ? post.excerpt_id : post.excerpt_en) ?? "",
+      body: (sourceLocale === "id" ? post.body_id : post.body_en) ?? "",
+      coverAlt: (sourceLocale === "id" ? post.cover_alt_id : post.cover_alt_en) ?? "",
+    },
+    {
+      async loadGlossary() {
+        const { data } = await guard.supabase
+          .from("translation_glossary")
+          .select("term, note")
+          .order("term");
+        return data ?? [];
+      },
+      async tokensUsedThisMonth() {
+        const { data } = await guard.supabase.rpc("translation_tokens_this_month");
+        return typeof data === "number" ? data : 0;
+      },
+      async recordRun(row) {
+        await guard.supabase.from("translation_runs").insert({
+          post_id: row.postId,
+          direction: row.direction,
+          provider: row.provider,
+          model: row.model,
+          status: row.status,
+          input_tokens: row.inputTokens,
+          output_tokens: row.outputTokens,
+          error_note: row.errorNote,
+        });
+      },
+    },
+  );
+
+  if (!outcome.ok) return { ok: false, message: outcome.message };
+
+  // Sisi terjemahan ditulis; sisi sumber tidak disentuh sama sekali.
+  // `translation_status` sengaja 'generated', bukan 'reviewed' — hanya
+  // Salsabilah yang boleh menaikkannya, dan gate terbit bergantung pada itu.
+  const patch =
+    targetLocale === "en"
+      ? {
+          title_en: outcome.draft.title,
+          excerpt_en: outcome.draft.excerpt,
+          body_en: outcome.draft.body,
+          cover_alt_en: outcome.draft.coverAlt,
+          translation_status: "generated",
+        }
+      : {
+          title_id: outcome.draft.title,
+          excerpt_id: outcome.draft.excerpt,
+          body_id: outcome.draft.body,
+          cover_alt_id: outcome.draft.coverAlt,
+          translation_status: "generated",
+        };
+
+  const { error } = await guard.supabase.from("posts").update(patch).eq("id", postId);
+  if (error) return { ok: false, message: describeDbError(error, "simpan-terjemahan") };
+
+  revalidatePath(`/admin/artikel/${postId}`);
+  return {
+    ok: true,
+    message: `Draft terjemahan dibuat oleh ${outcome.model}. Tinjau dan sunting sebelum menandainya sudah ditinjau.`,
+  };
 }
 
 const PESAN_COVER: Record<string, string> = {
