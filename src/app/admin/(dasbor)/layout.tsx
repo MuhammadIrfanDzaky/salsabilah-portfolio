@@ -53,6 +53,12 @@ export default async function DasborLayout({ children }: { children: React.React
               {adminCopy.nav.posts}
             </Link>
             <Link
+              href="/admin/komentar"
+              className="text-[14.5px] text-nav-text no-underline hover:text-ink"
+            >
+              {adminCopy.nav.comments}
+            </Link>
+            <Link
               href="/admin/artikel/baru"
               className="inline-flex items-center rounded-full bg-accent-strong px-4 py-2 text-[14px] font-semibold text-on-accent no-underline transition-opacity hover:opacity-85"
             >

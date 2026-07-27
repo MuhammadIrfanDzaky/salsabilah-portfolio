@@ -31,8 +31,25 @@ export const adminCopy = {
 
   nav: {
     posts: "Artikel",
+    comments: "Komentar",
     newPost: "Tulis artikel",
     signOut: "Keluar",
+  },
+
+  moderation: {
+    title: "Komentar",
+    lead: "Komentar tayang tanpa ditinjau lebih dulu. Menghapus di sini bersifat lunak — isinya tetap tersimpan dan bisa dipulihkan.",
+    empty: "Belum ada komentar.",
+    emptyFiltered: "Tidak ada komentar pada tab ini.",
+    tabVisible: "Tayang",
+    tabDeleted: "Dihapus",
+    tabAll: "Semua",
+    anonymous: "Tanpa nama",
+    onArticle: "pada",
+    openArticle: "Buka artikel",
+    delete: "Hapus",
+    restore: "Pulihkan",
+    deletedAt: "Dihapus",
   },
 
   status: {

@@ -5,6 +5,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PostBody } from "@/components/blog/post-body";
+import { ArticleEngagement } from "@/components/blog/article-engagement";
+import { CommentsSection } from "@/components/blog/comments-section";
 import { profile, ui } from "@/data/profile";
 import {
   coverUrl,
@@ -199,6 +201,18 @@ export default async function BlogPostPage({
               )}
 
               <PostBody body={body} />
+
+              <hr className="my-10 border-0 border-t border-line" />
+
+              <ArticleEngagement
+                postId={post.id}
+                locale={locale}
+                initialCount={post.like_count}
+                url={`${profile.siteUrl}/${locale}/blog/${slug}`}
+                title={title}
+              />
+
+              <CommentsSection postId={post.id} locale={locale} articleTitle={title} />
 
               <hr className="my-10 border-0 border-t border-line" />
 

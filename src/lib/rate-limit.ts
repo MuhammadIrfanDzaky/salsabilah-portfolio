@@ -1,9 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
-import type { Database } from "@/lib/supabase/database.types";
+import { createRpcClient } from "@/lib/supabase/rpc";
 
 /**
  * Pembatas laju (competency 28).
@@ -16,20 +14,6 @@ import type { Database } from "@/lib/supabase/database.types";
  * Seluruh logikanya ada di `consume_rate_limit()` (migrasi 0005) — satu
  * pernyataan atomik, satu perjalanan pulang-pergi.
  */
-
-/**
- * Klien tersendiri, tanpa penimpaan cache milik `createPublicClient()`.
- *
- * Panggilan RPC memakai POST dan karena itu tidak ikut di-cache Next, tapi
- * menggantungkan pembatas laju pada detail itu terlalu halus untuk dijadikan
- * jaminan: sekali saja ia salah di-cache, batasnya berhenti membatasi tanpa
- * memberi tanda apa pun.
- */
-function rateLimitClient() {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 /**
  * Salt opsional. Tanpa salt, sha256 dari sebuah alamat IPv4 bisa dibalik
@@ -71,7 +55,7 @@ export async function consumeRateLimit(
   limit: number,
   windowSeconds: number,
 ): Promise<boolean> {
-  const supabase = rateLimitClient();
+  const supabase = createRpcClient();
   const { data, error } = await supabase.rpc("consume_rate_limit", {
     p_bucket: key,
     p_limit: limit,

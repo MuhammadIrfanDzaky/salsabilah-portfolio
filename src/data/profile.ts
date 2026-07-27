@@ -453,6 +453,80 @@ export const ui = {
     },
   },
 
+  engagement: {
+    like: { en: "Helpful", id: "Bermanfaat" },
+    liked: { en: "Marked helpful", id: "Ditandai bermanfaat" },
+    likeCount: { en: "found this helpful", id: "menandai bermanfaat" },
+    share: { en: "Share", id: "Bagikan" },
+    copyLink: { en: "Copy link", id: "Salin tautan" },
+    copied: { en: "Link copied", id: "Tautan tersalin" },
+  },
+
+  comments: {
+    title: { en: "Comments", id: "Komentar" },
+    empty: {
+      en: "No comments yet. Yours would be the first.",
+      id: "Belum ada komentar. Punya Anda akan jadi yang pertama.",
+    },
+    loading: { en: "Loading comments…", id: "Memuat komentar…" },
+    loadFailed: {
+      en: "Comments could not be loaded. Try refreshing the page.",
+      id: "Komentar gagal dimuat. Coba muat ulang halaman.",
+    },
+    anonymous: { en: "Anonymous", id: "Tanpa nama" },
+    name: { en: "Name (optional)", id: "Nama (opsional)" },
+    namePlaceholder: { en: "Leave blank to stay anonymous", id: "Kosongkan untuk tanpa nama" },
+    body: { en: "Comment", id: "Komentar" },
+    bodyPlaceholder: { en: "Write your comment…", id: "Tulis komentar Anda…" },
+    send: { en: "Post comment", id: "Kirim komentar" },
+    sending: { en: "Sending…", id: "Mengirim…" },
+    sent: { en: "Thank you — your comment is published.", id: "Terima kasih — komentar Anda sudah tayang." },
+
+    rulesTitle: { en: "Before you comment", id: "Sebelum berkomentar" },
+    rules: {
+      en: "Comments appear immediately, without review. Keep them relevant to the article and civil. No advertising, no personal attacks, no personal data of other people. Salsabilah may remove any comment.",
+      id: "Komentar langsung tayang tanpa ditinjau lebih dulu. Jaga agar tetap relevan dengan artikel dan santun. Tanpa iklan, tanpa serangan pribadi, dan jangan memuat data pribadi orang lain. Salsabilah berhak menghapus komentar mana pun.",
+    },
+    privacy: {
+      en: "No email or account is required, and none is stored. To keep out spam this site stores a random identifier in your browser, plus the time your comment was posted. Removing that identifier from your browser storage removes the link.",
+      id: "Tidak perlu email maupun akun, dan keduanya tidak disimpan. Untuk menahan spam, situs ini menyimpan satu penanda acak di peramban Anda beserta waktu komentar dikirim. Menghapus penanda itu dari penyimpanan peramban memutus kaitannya.",
+    },
+    report: { en: "Report a comment", id: "Laporkan komentar" },
+    reportHint: {
+      en: "Found something abusive or off-limits? Email me and I will take it down.",
+      id: "Menemukan komentar kasar atau tidak pantas? Kirim email ke saya dan akan saya turunkan.",
+    },
+    reportSubject: { en: "Report a comment", id: "Laporan komentar" },
+
+    errors: {
+      "artikel-mati": {
+        en: "This article is no longer open for comments.",
+        id: "Artikel ini sudah tidak menerima komentar.",
+      },
+      "terlalu-cepat": {
+        en: "Too many comments in a short time. Please try again later.",
+        id: "Terlalu banyak komentar dalam waktu singkat. Coba lagi nanti.",
+      },
+      kosong: { en: "Write something first.", id: "Tulis dulu isinya." },
+      kepanjangan: {
+        en: "Comment is longer than 2000 characters.",
+        id: "Komentar lebih dari 2000 karakter.",
+      },
+      "nama-panjang": {
+        en: "Name is longer than 60 characters.",
+        id: "Nama lebih dari 60 karakter.",
+      },
+      "terlalu-banyak-tautan": {
+        en: "Too many links. Keep it to two at most.",
+        id: "Terlalu banyak tautan. Maksimal dua.",
+      },
+      umum: {
+        en: "Your comment could not be sent. Please try again.",
+        id: "Komentar gagal dikirim. Coba lagi.",
+      },
+    },
+  },
+
   error: {
     kicker: { en: "Something went wrong", id: "Ada yang tidak beres" },
     title: {

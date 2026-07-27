@@ -116,6 +116,29 @@ tidak mati. Alihannya juga butuh 1–2 menit untuk aktif.
 Cara normal menghilangkan artikel adalah menariknya atau mengarsipkannya, bukan
 menghapusnya.
 
+### Komentar pembaca
+
+Pembaca bisa berkomentar tanpa akun dan tanpa email. Nama boleh dikosongkan — komentarnya
+tampil sebagai "Tanpa nama". **Komentar langsung tayang tanpa Anda tinjau lebih dulu.** Itu
+keputusan yang disengaja supaya pembaca tidak terhalang, dan konsekuensinya Anda yang
+menyapu bersih setelahnya.
+
+Menu **Komentar** di dasbor menampilkan semuanya, dengan tab Tayang / Dihapus / Semua.
+
+- **Hapus** menyembunyikan komentar dari pembaca seketika. Isinya tetap tersimpan.
+- **Pulihkan** mengembalikannya. Tidak ada tombol hapus permanen untuk komentar.
+
+Yang sudah menahan spam tanpa Anda kerjakan apa pun: satu pengunjung dibatasi 5 komentar per
+10 menit, satu artikel 30 per jam, dan seluruh situs 100 per jam. Komentar dengan lebih dari
+dua tautan ditolak. Semua batas itu berlaku di database, jadi tetap berlaku meski penyerang
+melewati situsnya.
+
+Di bawah formulir komentar ada blok berisi aturan berkomentar, catatan privasi, dan tautan
+**Laporkan komentar** yang mengarah ke email Anda.
+
+Kalau suatu saat spam datang lebih cepat daripada Anda menghapusnya, itu pemicu untuk berpindah
+ke antrean moderasi — komentar ditahan sampai Anda setujui. Catat saja, nanti dibangun.
+
 ### Keluar
 
 Tombol **Keluar** di kanan atas. Sesi berakhir sendiri setelah beberapa waktu tidak

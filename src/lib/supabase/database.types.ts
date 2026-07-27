@@ -205,16 +205,31 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      comment_rate_ok: {
+        Args: { p_post_id: string; p_visitor_hash: string };
+        Returns: boolean;
+      };
       consume_rate_limit: {
         Args: { p_bucket: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      has_liked: { Args: { p_post_id: string; p_visitor_hash: string }; Returns: boolean };
       is_admin: { Args: never; Returns: boolean };
+      post_comment: {
+        Args: {
+          p_author_name: string | null;
+          p_body: string;
+          p_post_id: string;
+          p_visitor_hash: string;
+        };
+        Returns: string;
+      };
       post_is_live: {
         Args: { p: Database["public"]["Tables"]["posts"]["Row"] };
         Returns: boolean;
       };
       rename_post_slug: { Args: { p_new_slug: string; p_post_id: string }; Returns: undefined };
+      toggle_like: { Args: { p_post_id: string; p_visitor_hash: string }; Returns: string };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
