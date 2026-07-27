@@ -2,8 +2,8 @@
 
 - **Category:** `content` `+public-ugc` `+ai`
 - **Classified:** 2026-07-09 (re-klasifikasi; sebelumnya `portfolio`, lalu `content`)
-- **Last audit:** 2026-07-09
-- **Gates open:** 14 dari 21 blocking
+- **Last audit:** 2026-07-27
+- **Gates open:** 5 dari 21 blocking (sebelumnya 14; langkah 3 menutup 9)
 - **Live:** `https://salsabilah.vercel.app` — blog masih tersembunyi (K7) sampai artikel asli pertama terbit
 - **Supabase project:** `htioqsxmbucefsfuiaro` (org `Jek`, region `ap-southeast-1`, $0/bulan)
 
@@ -37,39 +37,39 @@ keputusan ini adalah beralih ke antrean moderasi.
 | # | Competency | Status | Evidence / reason |
 |---|---|---|---|
 | 8 | UI/UX & Responsiveness | applied | One-pager terukur di 375/440/768/1440px tanpa scroll horizontal. **Reopen:** rute blog & dashboard harus diuji pada lebar yang sama |
-| 2 | Documentation & Maintenance | deferred | README masih bawaan `create-next-app`. **Reopen: sebelum rilis** — wajib memuat panduan pakai dashboard berbahasa Indonesia untuk Salsabilah |
+| 2 | Documentation & Maintenance | applied | `README.md` ditulis ulang (2026-07-27): panduan dasbor berbahasa Indonesia untuk Salsabilah — masuk, menulis, cover, dua bahasa, terbit/jadwal, tarik/arsip/hapus — plus bagian pengembang berisi variabel lingkungan, struktur, dan lima jebakan yang sudah pernah menggigit. **Reopen: saat fitur terjemahan (langkah 4) menambah alur baru** |
 | 5 | Cost & FinOps | deferred | Naik ke blocking karena `+ai`. Belum ada plafon biaya maupun alert. **Reopen: sebelum panggilan LLM pertama dari produksi** |
 | 6 | Legal & Compliance | deferred | Naik ke blocking karena `+public-ugc`. Butuh aturan berkomentar, jalur pelaporan, proses takedown, dan catatan privasi (form kontak + analytics + IP komentar). **Reopen: Fase 2** |
-| 11 | SEO & Metadata | applied | Metadata per-locale + OG/Twitter + canonical + `hreflang`, OG image dinamis, `src/app/sitemap.ts` (10 URL dengan 20 alternate hreflang; indeks blog hanya masuk bila ada artikel terbit), `src/app/robots.ts` (menutup `/admin` dan `/api/`, menunjuk sitemap), structured data `BlogPosting` per artikel, dan RSS per bahasa di `/[locale]/feed.xml` — terbukti terparsing sebagai XML valid dengan `Content-Type: application/rss+xml` |
-| 12 | i18n / Timezone / Locale | deferred | Rute `/en` `/id` terbukti jalan. Tapi jadwal terbit membuat timezone jadi nyata: `published_at` disimpan UTC, ditulis/ditampilkan WIB. **Reopen: bersama skema tabel `posts`** |
+| 11 | SEO & Metadata | applied | Metadata per-locale + OG/Twitter + canonical + `hreflang`, OG image dinamis, `src/app/sitemap.ts` (10 URL dengan 20 alternate hreflang; indeks blog hanya masuk bila ada artikel terbit), `src/app/robots.ts` (menutup `/admin` dan `/api/`, menunjuk sitemap), structured data `BlogPosting` per artikel, dan RSS per bahasa di `/[locale]/feed.xml` — terbukti terparsing sebagai XML valid dengan `Content-Type: application/rss+xml`. Redirect 301 slug lama terverifikasi ujung-ke-ujung 2026-07-27: `rename_post_slug()` mencatat slug lama, dan `/id/blog/asd` menjawab `308 Permanent Redirect → /id/blog/catatan-uji-301`. **Catatan:** rute `blog/[slug]` kini `ƒ` (bukan `●`) — lihat jebakan `NoFallbackError` di bawah |
+| 12 | i18n / Timezone / Locale | applied | `src/lib/time.ts` mengonversi WIB⇄UTC dengan offset tetap (+7, Indonesia tanpa DST) — bukan mengandalkan zona waktu server, yang di Vercel berarti UTC dan akan menggeser jadwal 7 jam. Terverifikasi 6/6 lewat pemanggilan langsung: `wibToUtcIso("2026-08-01T09:00")` → `"2026-08-01T02:00:00.000Z"`, pulang-pergi utuh, dan tanggal mustahil (31 Februari) ditolak alih-alih digulung diam-diam. Setiap tampilan waktu di dasbor berakhiran literal "WIB" |
 | 13 | Performance | applied | Diukur pada **deploy nyata** `https://salsabilah.vercel.app` (2026-07-26): `/en` Performance 94 · Accessibility 100 · Best Practices 100 · SEO 100; `/id` 96 pada run bersih. LCP stabil 2,5–2,8s, CLS 0. **Catatan:** skor sempat 66–83 pada beberapa run — penyebabnya TBT yang melonjak mengikuti beban CPU mesin pengukur, bukan situs (LCP tidak berubah). **Reopen: setelah halaman blog benar-benar terbit, karena rute berbasis database belum ikut terukur** |
 | 16 | Data Modeling | applied | `supabase/migrations/0001_init_blog.sql` diterapkan ke project. Constraint dideklarasikan di database, bukan hanya di aplikasi: gate terbit bilingual+reviewed, FK dengan `on delete restrict/cascade`, unique pada slug, PK gabungan pada `likes` untuk idempotensi, indeks pada semua kolom filter, dan `post_slug_history` untuk redirect 301. Terverifikasi via `list_tables`: 7 tabel, RLS aktif semua |
-| 18 | Data Validation | deferred | Blocking ganda (`+public-ugc` dan `+ai`): input komentar divalidasi server-side per tipe/panjang/konten, **dan** output model divalidasi terhadap skema sebelum dipakai. **Reopen: bersama route handler pertama** |
-| 19 | Data Lifecycle | deferred | Soft delete untuk komentar + riwayat moderasi; artikel di-unpublish, bukan dihapus. **Reopen: bersama skema** |
+| 18 | Data Validation | deferred | Sisi artikel **sudah**: `src/lib/validation.ts` memvalidasi server-side per tipe, panjang, dan enum; `category_id` dicocokkan ulang dengan daftar dari server, bukan dipercaya dari `<select>`; teks dinormalisasi NFC dan karakter kontrol dibuang. Ditulis tangan, tanpa dependensi baru, agar `npm audit` tetap 0. **Sisa (tetap blocking): input komentar (Fase 2) dan validasi output model terhadap skema (langkah 4)** |
+| 19 | Data Lifecycle | applied | Artikel: **Tarik dari publik** mengembalikan ke draf tanpa menyentuh `published_at` (menerbitkan ulang tidak memalsukan tanggal); **Arsipkan** hanya menyetel `deleted_at`; **Pulihkan** mengembalikannya. Hapus permanen hanya tersedia untuk baris yang sudah diarsipkan dan menuntut slug diketik ulang — jalan keluar untuk K8. Tidak ada jalur hard delete dari artikel live maupun draf. **Reopen: soft delete + riwayat moderasi komentar, Fase 2** |
 | 21 | Search | applied | Full-text search Postgres via kolom tsvector `search_id`/`search_en` dengan indeks GIN, mode `websearch` — bukan `LIKE '%x%'`. Form GET biasa sehingga tetap jalan tanpa JavaScript dan hasilnya berupa URL yang bisa dibagikan. Terverifikasi: `q=cengkeh`→1, `q=clove`→1, `q=zzzznonsense`→0, dan irisan filter+cari benar (`kategori=analisis&q=cengkeh`→1, `kategori=catatan&q=cengkeh`→0) |
-| 22 | File & Media | applied | Bucket `post-covers`: batas 5MB, MIME dibatasi ke jpeg/png/webp/avif (**SVG sengaja dilarang** — bisa memuat script), disajikan dari `<ref>.supabase.co` yakni origin terpisah dari aplikasi. `src/lib/covers.ts` melakukan cek **berbasis isi** (harus benar-benar terdekode sebagai raster), auto-rotate lalu re-encode ke webp yang sekaligus membuang EXIF/GPS, dengan `limitInputPixels` sebagai penangkal decompression bomb. Terverifikasi 5/5: gambar asli lolos, EXIF terbukti hilang, teks menyamar ditolak, SVG ditolak, anon ditolak saat unggah. Anon juga tidak bisa mendaftar isi bucket (migrasi `0004`). **Sisa yang diverifikasi di langkah 3:** jalur unggah admin yang berhasil |
-| 25 | Authentication | deferred | Dashboard admin butuh login. Pengguna tunggal (Salsabilah). **Reopen: sebelum route admin pertama dibuat** |
-| 26 | Permissions & Access Control | deferred | Otorisasi dicek server-side pada setiap mutasi, bukan hanya disembunyikan di UI. RLS Supabase sebagai lapis kedua. Model tidak boleh menentukan keputusan otorisasi. **Reopen: bersama auth** |
-| 27 | Security & SSL | deferred | Output escaping terhadap stored XSS; konten pembaca tidak pernah dirender sebagai HTML mentah; permukaan prompt-injection ditinjau karena teks Salsabilah masuk ke prompt. Security headers belum diset. **Reopen: sebelum deploy** |
-| 28 | Rate Limiting | deferred | Blocking ganda: pembatas abuse untuk komentar/like **dan** pembatas biaya untuk endpoint terjemahan. **Reopen: bersama endpoint publik pertama** |
-| 29 | Env & Secrets | deferred | `.env.example` sudah ada dan ikut repo (pengecualian `!.env.example` ditambahkan ke `.gitignore`, karena pola `.env*` tadinya ikut mengabaikannya). `.env.local` terbukti diabaikan git. `src/lib/supabase/env.ts` menggagalkan startup bila variabel hilang. Service key Supabase **sengaja tidak pernah diambil** — aplikasi memakai kunci publishable + RLS saja. **Sisa: `ANTHROPIC_API_KEY` belum diisi dan secret produksi belum ditaruh di managed store. Reopen: langkah 4 dan saat deploy** |
+| 22 | File & Media | applied | Bucket `post-covers`: batas 5MB, MIME dibatasi ke jpeg/png/webp/avif (**SVG sengaja dilarang** — bisa memuat script), disajikan dari `<ref>.supabase.co` yakni origin terpisah dari aplikasi. `src/lib/covers.ts` melakukan cek **berbasis isi** (harus benar-benar terdekode sebagai raster), auto-rotate lalu re-encode ke webp yang sekaligus membuang EXIF/GPS, dengan `limitInputPixels` sebagai penangkal decompression bomb. Terverifikasi 5/5: gambar asli lolos, EXIF terbukti hilang, teks menyamar ditolak, SVG ditolak, anon ditolak saat unggah. Anon juga tidak bisa mendaftar isi bucket (migrasi `0004`). **Jalur unggah admin sudah ada** (`uploadCover` di `artikel/actions.ts`), dan pipeline-nya diuji langsung 12/12 pada 2026-07-27: JPEG ber-EXIF 252 byte keluar sebagai WebP 1600px tanpa EXIF/XMP dan tanpa jejak string metadata di byte keluarannya; teks menyamar → `not-an-image`; SVG → `unsupported-format`; 320px → `too-small`; >5MB → `too-large`. **Sisa: satu unggahan nyata lewat UI dasbor** |
+| 25 | Authentication | applied | Supabase Auth email+password, kunci publishable saja, sesi cookie lewat `@supabase/ssr`. Masuk dijalankan sebagai Server Action, bukan klien browser — formulir tetap jalan tanpa JavaScript dan pembatas laju berjalan sebelum kredensial sampai ke GoTrue. Middleware menyegarkan sesi khusus jalur `/admin` (token berumur 1 jam; Server Component tidak boleh menulis cookie). Terverifikasi: `/admin` tanpa sesi → 307 ke `/admin/masuk?lanjut=…`; kredensial salah → satu pesan generik; login berhasil 2026-07-27 12:24 UTC dan `auth.users.last_sign_in_at` berubah dari null. **Sisa: signup publik dimatikan lewat dashboard Supabase (tindakan manual)** |
+| 26 | Permissions & Access Control | applied | Tiga lapis, dan yang ketiga tidak bergantung pada kode aplikasi sama sekali: (1) gate layout `(dasbor)`, (2) `requireAdmin()` di baris pertama **setiap** Server Action — perlu karena layout tidak dijalankan sebelum action, (3) RLS. Terverifikasi: POST Server Action dengan `Next-Action` valid tanpa cookie → 307, kodenya tidak pernah jalan; kunci anon lewat REST langsung → `posts` `[]` padahal ada 4 baris, `rate_limits` `[]`. **Catatan jujur: lapis 2 belum diuji terpisah** — membuktikannya butuh sesi valid milik akun non-admin, dan itu tidak dilakukan |
+| 27 | Security & SSL | applied | Enam header global terpasang dan terbukti terkirim (`Strict-Transport-Security` 2 tahun + preload, `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy`, `X-DNS-Prefetch-Control`), diset di `next.config.ts` agar berlaku juga saat `next dev`. CSP penuh khusus `/admin/*` — bisa ditegakkan justru karena dasbor tidak memasang `next-themes`; origin Supabase diturunkan dari env var. Nol `dangerouslySetInnerHTML` di seluruh permukaan dasbor: pratinjau artikel lewat `<PostBody>` yang membangun elemen React. **Sisi publik sengaja tanpa CSP** — script tema inline dan JSON-LD butuh nonce per-permintaan, dan merusak situs live berskor Lighthouse 100 demi satu kotak centang adalah pertukaran yang salah. **Reopen: nonce CSP publik; tinjau permukaan prompt-injection di langkah 4** |
+| 28 | Rate Limiting | applied | Penghitung di Postgres (`rate_limits` + `consume_rate_limit()`, migrasi `0005`), bukan memori proses — fungsi serverless tidak berbagi memori antar instance, jadi `Map` in-memory praktis tidak membatasi apa pun. Jendela tetap, satu pernyataan atomik. Batas: masuk 10/IP dan 5/email per 15 menit, unggah cover 20/jam, simpan 120/jam. Terverifikasi dua tingkat: fungsi DB mengembalikan true,true,true,**false**,false; dan lewat UI, satu percobaan gagal menulis dua bucket ter-hash, lalu setelah dipaksa lewat batas pesannya berubah jadi "Terlalu banyak percobaan" — membuktikan limiter berjalan **sebelum** GoTrue. **Reopen: pembatas komentar (Fase 2) dan pembatas biaya terjemahan (langkah 4)** |
+| 29 | Env & Secrets | deferred | `.env.example` sudah ada dan ikut repo (pengecualian `!.env.example` ditambahkan ke `.gitignore`, karena pola `.env*` tadinya ikut mengabaikannya). `.env.local` terbukti diabaikan git. `src/lib/supabase/env.ts` menggagalkan startup bila variabel hilang. Service key Supabase **sengaja tidak pernah diambil** — aplikasi memakai kunci publishable + RLS saja. Ditambah `RATE_LIMIT_SALT` (opsional) — tanpa salt, hash sha256 dari sebuah alamat IPv4 masih bisa dibalik dengan mencoba seluruh ruang alamat, jadi kolom `bucket` menyamarkan tapi tidak menganonimkan; tabelnya sendiri tak terbaca lewat REST dan barisnya dihapus setelah sehari, sehingga ketiadaannya bukan lubang melainkan satu lapis yang hilang. **Sisa: `ANTHROPIC_API_KEY` belum diisi dan secret produksi belum ditaruh di managed store. Reopen: langkah 4 dan saat deploy** |
 | 34 | AI / LLM Integration | deferred | Plafon biaya per request, batas token, model & versi dipin, output diperlakukan sebagai input tak tepercaya, fallback saat provider mati. **Reopen: Fase 1, saat fitur terjemahan dibuat** |
 | 38 | Cache & CDN | applied | Terpasang di CDN Vercel sejak deploy 2026-07-26. One-pager tetap statis; rute blog dan sitemap memakai ISR `revalidate = 60`, dan cache data Supabase diselaraskan ke jendela yang sama (lihat catatan jebakan di bawah). Aset `_next/static` dilewati matcher middleware sehingga tidak menambah hop |
-| 46 | Error Handling | deferred | Halaman 404 khusus sudah ada (`src/app/not-found.tsx`): sadar bahasa dari sisi server, status 404 benar, `noindex`, dan mandiri dari `globals.css`. **Sisa (tetap blocking karena `+ai`): `error.tsx` untuk kegagalan runtime, plus fallback saat provider terjemahan timeout/outage/menolak. Reopen: bersama fitur terjemahan** |
-| 50 | Admin / Back-office | deferred | Inti dari K1. Wajib sebelum rilis: tulis/edit/draft/jadwal/terbit, unggah cover, tinjau terjemahan, serta hapus + pulihkan komentar. **Reopen: Fase 1** |
+| 46 | Error Handling | deferred | 404 khusus sudah ada sejak sebelumnya. Ditambah 2026-07-27: `src/app/[locale]/error.tsx` (sadar bahasa, tombol `reset()`, menampilkan `digest` sebagai satu-satunya jalan mencocokkan layar dengan log Vercel) dan `src/app/admin/error.tsx` + `loading.tsx`. **`loading.tsx` untuk rute blog sengaja TIDAK ada** — lihat jebakan soft 404 di bawah. **Sisa (tetap blocking karena `+ai`): fallback saat provider terjemahan timeout/outage/menolak. Reopen: langkah 4** |
+| 50 | Admin / Back-office | deferred | Sisi artikel **selesai**: `/admin` (daftar dengan tab Semua/Draf/Terjadwal/Terbit/Arsip), `/admin/artikel/baru`, `/admin/artikel/[id]` — tulis, sunting, slug otomatis, unggah cover, tinjau terjemahan, simpan draf, jadwalkan, terbitkan, tarik, arsipkan, pulihkan, hapus permanen. Semua mutasi lewat Server Action, nol route `/api/*` baru (CSRF ditangani pemeriksaan `Origin` bawaan Next). **Sisa (tetap blocking): hapus + pulihkan komentar, Fase 2** |
 
 ## Recommended
 
 | # | Competency | Status | Evidence / reason |
 |---|---|---|---|
 | 1 | Requirements & Scoping | applied | Build spec awal + 13 kriteria sukses terverifikasi; K1–K8 di atas menutup scope blog |
-| 7 | Frontend | applied | Komponen per-section di `src/components/`. **Catatan:** rute blog butuh loading/empty/error state yang belum ada |
+| 7 | Frontend | applied | Komponen per-section di `src/components/`, ditambah `src/components/admin/`. Error state rute blog dan loading/error state dasbor sudah ada (lihat #46); daftar artikel punya empty state terpisah untuk "belum ada artikel" dan "tab ini kosong". Rute blog sengaja tanpa `loading.tsx` karena akan merusak status 404-nya |
 | 9 | Application State | applied | `next-themes` + `useState` lokal; tanpa sumber kebenaran ganda |
-| 10 | Accessibility | applied | Lighthouse Accessibility 100 di `/en` dan `/id`. **Reopen:** form dashboard & komentar harus ikut diuji |
-| 14 | APIs & Backend Logic | deferred | Belum ada route handler. Butuh kontrak response/error yang konsisten. **Reopen: Fase 1** |
+| 10 | Accessibility | applied | Lighthouse Accessibility 100 di `/en` dan `/id`. Form dasbor dibangun lewat `<Field>` yang menautkan label, petunjuk, dan galat secara eksplisit (`htmlFor`, `aria-describedby`, `aria-invalid`); ringkasan galat `role="alert"` menerima fokus setelah simpan gagal; kolom dua bahasa dibungkus `<fieldset>`/`<legend>`. **Reopen: audit axe pada dasbor belum dijalankan; form komentar Fase 2** |
+| 14 | APIs & Backend Logic | applied | Server Action, bukan route handler — CSRF ditangani Next, tidak ada endpoint admin yang bisa ditebak, dan formulir tetap jalan tanpa JavaScript. Kontrak tunggal `ActionResult` di `src/lib/admin/guard.ts` dikonsumsi lewat `useActionState`. `src/lib/admin/errors.ts` memetakan kode Postgres ke kalimat Indonesia (`23505` → slug bentrok, `23514` → syarat terbit belum lengkap, `42501`/`PGRST301` → sesi tidak berwenang); pesan aslinya tidak pernah sampai ke browser, hanya ke log server — nama tabel dan constraint adalah peta skema gratis bagi yang memancing error |
 | 15 | Database & Storage | deferred | Koneksi jalan dan terbukti: `src/lib/supabase/{env,server,client}.ts`; 6/6 pemeriksaan RLS lulus dengan kunci publishable. Pooling ditangani Supabase. Indeks terpasang pada slug, status+published_at, category_id, dan dua indeks GIN untuk FTS. **Sisa: bucket Storage untuk cover image. Reopen: langkah 2** |
-| 17 | Migrations | applied | Migrasi berversi di `supabase/migrations/` dan ikut ter-commit: `0001_init_blog.sql`, `0002_harden_functions.sql`. Isi file identik dengan yang diterapkan ke database |
-| 23 | Queues & Async | deferred | Dibuka kembali oleh jadwal terbit (K1). Rencana: Vercel Cron, bukan queue penuh. **Reopen: Fase 1** |
+| 17 | Migrations | applied | Migrasi berversi di `supabase/migrations/` dan ikut ter-commit, kini sampai `0005_admin_rate_limit_and_fixes.sql` (terpasang sebagai `20260727081452`). Isi file identik dengan yang diterapkan ke database |
+| 23 | Queues & Async | applied | **Tidak ada cron, dan itu jawabannya.** `post_is_live()` sudah memeriksa `published_at <= now()` dan bersifat `stable`, jadi baris berstatus `published` dengan tanggal masa depan sudah berada dalam keadaan finalnya — RLS menyembunyikannya sampai waktunya lewat. Tidak ada UPDATE yang perlu dijalankan di batas waktu, sehingga pertanyaan "bagaimana cron menulis di bawah RLS tanpa service key" tidak pernah muncul. Yang terjadi di batas waktu hanyalah kedaluwarsa cache ISR (≤ ~2 menit). Terverifikasi 2026-07-27: artikel diterbitkan tanpa build ulang, `/id/blog` dan `/id/blog/<slug>` keduanya live dalam 20 detik. Kalau kelak benar-benar butuh penulisan terjadwal, urutan pilihannya: `pg_cron` (tersedia, belum terpasang; berjalan di dalam Postgres sehingga tidak melewati PostgREST maupun RLS) — bukan RPC `security definer` berpenjaga secret, dan bukan menyimpan refresh token admin di env |
 | 30 | Dependency & Supply Chain | applied | `npm audit --omit=dev` → **0 kerentanan** (2026-07-09). Ditutup dengan `next@15.5.22` plus `overrides` di `package.json` yang memaksa `postcss@^8.5.23` dan `sharp@^0.35.3` — bump `next` saja ternyata tidak cukup karena advisory-nya menyasar dua dependensi bawaan itu. Lockfile ter-commit. **Catatan:** `overrides` harus ditinjau ulang setiap kali `next` di-upgrade, kalau-kalau sudah tidak diperlukan |
 | 35 | Hosting & Deployment | applied | Live di `https://salsabilah.vercel.app` (project `prj_NFoCWbLv3XKCftBfKMONveSUFKkT`). Deploy otomatis tiap push ke `master`; build commit `5866677` selesai 50 detik. **Rollback:** Vercel → Deployments → pilih deployment lama bertanda *rollback candidate* → Promote to Production; deployment sebelumnya (`dpl_5cgx…`) masih tersedia sebagai titik balik |
 | 42 | Code Quality Automation | deferred | ESLint + TypeScript jalan saat build, belum dipaksakan otomatis. **Reopen: bersama CI** |
@@ -121,6 +121,36 @@ membaca respons basi — artikel yang baru terbit tidak akan pernah sampai ke ho
 diganti `cache: "no-store"`: itu memang menyegarkan data tapi memaksa seluruh rute jadi dinamis
 dan mematikan SSG (build gagal ketika dicoba).
 
+**`NoFallbackError` pada `blog/[slug]` (ditemukan 2026-07-27, sudah diperbaiki):** `generateStaticParams`
+yang mengembalikan daftar kosong — keadaan setiap build sebelum artikel pertama terbit — membuat
+Next tidak membuat fallback untuk rute itu, dan setiap permintaan mati di dalam router dengan
+`Error: Internal: NoFallbackError` sebelum komponennya jalan. Gejalanya cuma 404. Dua hal rusak
+sekaligus: artikel pertama yang Salsabilah terbitkan tidak bisa dibuka sampai ada push yang memicu
+build ulang (dan menerbitkan tidak melakukan push), dan redirect 301 slug lama ikut mati karena
+logikanya ada di dalam komponen itu. Begitu ada ≥1 slug ter-prerender masalahnya lenyap — itu yang
+membuatnya mudah terlewat. `generateStaticParams` dihapus; rute jadi `ƒ` dengan ISR 60 detik.
+**Jangan menambahkannya kembali.**
+
+**"Terbitkan sekarang" vs kolom tanggal (ditemukan 2026-07-27, sudah diperbaiki):** tombolnya dulu
+menghormati isi kolom tanggal, jadi tanggal masa depan membuat artikel terjadwal — padahal
+tombolnya bertuliskan "sekarang". `publishNowDate()` di `src/lib/admin/publish.ts` menimpa tanggal
+masa depan dengan waktu sekarang, tapi mempertahankan tanggal masa lalu supaya menerbitkan ulang
+artikel lama tidak memalsukannya jadi baru. Terverifikasi 5/5.
+
+**`loading.tsx` mengubah 404 jadi soft 404 (ditemukan 2026-07-27, sudah diperbaiki):** menambahkan
+`src/app/[locale]/blog/loading.tsx` membuat Suspense boundary, sehingga respons mulai di-stream
+dengan status 200 sebelum `notFound()` sempat dipanggil — status tidak bisa diubah setelah byte
+pertama terkirim. Akibatnya `/id/blog` menyajikan **isi halaman 404 dengan status 200**, persis
+pola yang dihukum mesin pencari, dan sekaligus membatalkan klaim status 404 benar di #11. File itu
+dihapus. **Jangan menambahkan `loading.tsx` pada rute mana pun yang memanggil `notFound()`.**
+`src/app/admin/loading.tsx` dibiarkan: `/admin/artikel/[id]` juga memanggil `notFound()` dan
+karenanya ikut menghasilkan soft 404, tapi seluruh `/admin` sudah `noindex` sehingga tidak ada
+mesin pencari yang menilainya.
+
+**Jendela ISR setelah ganti slug:** URL lama sempat menyajikan 200 basi, lalu 404 sesaat, sebelum
+mantap jadi 308 — sekitar 50 detik pada pengukuran 2026-07-27. Harga ISR, bukan kegagalan. Jangan
+panik dan jangan menambahkan `no-store` untuk "memperbaikinya".
+
 **Dari `+ai`:** output model diperlakukan sebagai input tak tepercaya · output model tidak pernah
 menentukan otorisasi · retry dibatasi agar loop gagal tidak jadi tagihan · glosarium istilah
 teknis diverifikasi terhadap output, bukan sekadar dipercaya ada di prompt.
@@ -132,6 +162,44 @@ teknis diverifikasi terhadap output, bukan sekadar dipercaya ada di prompt.
 `authenticated` wajib punya EXECUTE atau seluruh policy admin ikut mati. Fungsinya hanya
 mengembalikan boolean tentang pemanggil sendiri dan tidak membocorkan data siapa pun. Hak
 eksekusi untuk `anon` sudah dicabut di migrasi `0002`.
+
+`anon_security_definer_function_executable` dan `authenticated_security_definer_function_executable`
+pada `public.consume_rate_limit()` — dibiarkan **dengan sengaja**, alasannya sekelas di atas.
+`anon` wajib punya EXECUTE karena pembatas laju login harus berjalan sebelum ada sesi; kalau
+dicabut, jalur brute-force login kehilangan pembatasnya. Fungsinya hanya mengembalikan satu boolean
+tentang kunci yang pemanggilnya sendiri kirim dan tidak pernah membocorkan baris siapa pun.
+
+`rls_enabled_no_policy` pada `public.rate_limits` (INFO) — memang begitu rancangannya. RLS aktif
+tanpa satu pun policy berarti tabelnya tertutup rapat lewat REST; satu-satunya jalan masuk adalah
+fungsi `security definer` di atas. Terverifikasi: kunci anon membaca tabel itu mengembalikan `[]`.
+
+`auth_leaked_password_protection` — **tidak bisa ditutup pada paket saat ini.** Pemeriksaan
+HaveIBeenPwned milik Supabase Auth hanya tersedia mulai paket Pro, sedangkan project ini di paket
+gratis (postur $0/bulan). Bukan gate yang gagal; `deferred` dengan pemicu buka ulang: bila project
+naik ke Pro.
+
+## Yang belum diverifikasi lewat UI (per 2026-07-27)
+
+Sebagian besar bukti di atas dihasilkan lewat pemanggilan langsung ke database, HTTP terhadap
+server produksi lokal, dan pengujian fungsi murni — bukan dengan mengklik dasbor. Yang berikut ini
+**belum pernah dijalankan sekali pun lewat antarmuka**, dan harus dicoba sebelum rilis:
+
+- Menyimpan artikel baru lewat tombol **Simpan draf** (jalur `saveArticle` untuk baris baru).
+- Unggah cover lewat panel dasbor. Pipeline-nya sudah diuji terpisah 12/12, tapi jalur
+  `File → Server Action → Storage → kolom cover_path` belum.
+- **Tandai terjemahan sudah ditinjau**, **Tarik dari publik**, **Arsipkan**, **Pulihkan**,
+  **Hapus permanen**.
+- Penolakan `23514` yang muncul di layar saat menerbitkan artikel yang syaratnya belum lengkap.
+  Constraint-nya sudah terbukti menolak di tingkat database; yang belum adalah pemetaannya jadi
+  kalimat Indonesia di dasbor.
+- Ganti slug lewat formulir (mekanisme `rename_post_slug` sendiri sudah terbukti).
+
+Dua tindakan manual yang juga masih terbuka: **mematikan signup publik** di dashboard Supabase, dan
+menghapus tiga artikel `[DUMMY]` beserta cover placeholder di `public/blog-covers/` (K8).
+
+Satu artikel uji bernama `catatan-uji-301` tertinggal dalam keadaan **diarsipkan** — sisa pengujian
+301 pada 2026-07-27. Aman dibiarkan (tidak terlihat publik) dan berguna sebagai bahan mencoba
+Pulihkan/Hapus permanen.
 
 ## Checkpoint
 

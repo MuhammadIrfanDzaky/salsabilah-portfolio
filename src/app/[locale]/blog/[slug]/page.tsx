@@ -11,12 +11,11 @@ import {
   formatPublishedAt,
   getPostBySlug,
   listCategories,
-  listPublishedSlugs,
   localized,
   readingMinutes,
   resolveRenamedSlug,
 } from "@/lib/blog";
-import { isLocale, locales, otherLocale, type Locale } from "@/lib/i18n";
+import { isLocale, otherLocale, type Locale } from "@/lib/i18n";
 
 export const revalidate = 60;
 
@@ -28,10 +27,31 @@ export const revalidate = 60;
  */
 export const dynamicParams = true;
 
-export async function generateStaticParams() {
-  const slugs = await listPublishedSlugs();
-  return locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug })));
-}
+/*
+ * `generateStaticParams` is deliberately ABSENT, and removing it fixed a real
+ * failure (found 2026-07-27 by publishing the first article on a build made
+ * when none existed).
+ *
+ * With it present but returning an empty list — the state of every build made
+ * before the first article goes live — Next emits no fallback for this route,
+ * and every on-demand request dies inside the router with
+ * `Error: Internal: NoFallbackError` before the component runs. The visible
+ * symptom is a 404. Two things break at once, both silently:
+ *
+ *   1. The first article Salsabilah publishes is unreachable until someone
+ *      pushes a commit and triggers a rebuild — and publishing does not push.
+ *   2. The 301 for a renamed slug never fires, because it lives in this
+ *      component and the component is never reached.
+ *
+ * Once at least one slug is prerendered the problem disappears, which is
+ * exactly what makes it easy to miss: it only bites the empty-blog state, and
+ * that state is where this site starts.
+ *
+ * The cost is that post pages are rendered on demand rather than at build
+ * time. `revalidate = 60` above still caches each URL after its first hit, so
+ * what is actually lost is the very first render of each article, not every
+ * render. Correctness on day one is worth more than that.
+ */
 
 export async function generateMetadata({
   params,

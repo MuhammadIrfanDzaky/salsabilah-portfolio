@@ -452,4 +452,20 @@ export const ui = {
       id: "Pilih bahasa untuk melanjutkan:",
     },
   },
+
+  error: {
+    kicker: { en: "Something went wrong", id: "Ada yang tidak beres" },
+    title: {
+      en: "This page could not be loaded",
+      id: "Halaman ini gagal dimuat",
+    },
+    body: {
+      en: "The problem is on this site, not with your connection. Trying again often works; if it does not, the page will be back shortly.",
+      id: "Masalahnya ada di situs ini, bukan di koneksi Anda. Mencoba lagi biasanya berhasil; kalau tidak, halaman ini akan segera pulih.",
+    },
+    retry: { en: "Try again", id: "Coba lagi" },
+    backHome: { en: "Back to home", id: "Kembali ke beranda" },
+  },
+
+  loading: { en: "Loading articles…", id: "Memuat artikel…" },
 } as const;

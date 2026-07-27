@@ -190,6 +190,12 @@ export type Database = {
           },
         ];
       };
+      rate_limits: {
+        Row: { bucket: string; hits: number; window_start: string };
+        Insert: { bucket: string; hits?: number; window_start: string };
+        Update: { bucket?: string; hits?: number; window_start?: string };
+        Relationships: [];
+      };
       translation_glossary: {
         Row: { created_at: string; id: string; note: string | null; term: string };
         Insert: { created_at?: string; id?: string; note?: string | null; term: string };
@@ -199,6 +205,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      consume_rate_limit: {
+        Args: { p_bucket: string; p_limit: number; p_window_seconds: number };
+        Returns: boolean;
+      };
       is_admin: { Args: never; Returns: boolean };
       post_is_live: {
         Args: { p: Database["public"]["Tables"]["posts"]["Row"] };

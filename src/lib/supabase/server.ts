@@ -40,6 +40,19 @@ export async function createSessionClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: {
+      /*
+       * Kebalikan yang disengaja dari createPublicClient() di atas.
+       *
+       * Rute publik menukar kesegaran dengan jendela 60 detik supaya tetap bisa
+       * digenerasi statis. Dasbor tidak boleh melakukan pertukaran itu: setelah
+       * Salsabilah menyimpan, halaman berikutnya harus menampilkan apa yang
+       * benar-benar tersimpan, bukan salinan yang berumur sampai semenit. Rute
+       * di bawah /admin memang dinamis, jadi tidak ada generasi statis yang
+       * hilang karenanya.
+       */
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
