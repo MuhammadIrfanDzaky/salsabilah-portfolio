@@ -71,8 +71,15 @@ Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang p
 
 - Hasilnya **selalu draft**. Sistem tidak pernah menandainya sudah ditinjau — itu hanya bisa
   Anda lakukan, dan artikel tidak bisa terbit tanpanya.
-- Istilah di glosarium **diperiksa otomatis**. Kalau mesin ikut menerjemahkan istilah yang
-  seharusnya dibiarkan utuh, draftnya ditolak seluruhnya dan Anda diberi tahu istilah mana.
+- Istilah di glosarium **dilindungi otomatis**. Sebelum dikirim, setiap istilah dibungkus
+  penanda yang membuat penerjemah melewatinya — jadi nama spesies seperti *Heterotrigona
+  itama* dan istilah baku seperti `propolis` tidak bisa ikut berubah. Hasilnya tetap
+  diperiksa ulang setelahnya; kalau sampai ada yang berubah, draftnya ditolak seluruhnya
+  dan Anda diberi tahu istilah mana.
+- Glosariumnya **data, bukan kode** — isinya bisa tumbuh. Kalau Anda menulis di bidang baru
+  (misalnya artikel pertama tentang lebah kelulut, yang istilahnya tidak ada di daftar awal
+  berisi istilah ekonometrika), istilah barunya perlu dimasukkan lebih dulu. Tanpa itu
+  pemeriksaannya diam saja — ia hanya menjaga istilah yang terdaftar.
 - Hanya tersedia untuk artikel berstatus **draf**. Untuk artikel yang sudah terbit, tarik dulu
   dari publik.
 - Kalau mesinnya sedang bermasalah, pesannya menjelaskan apa yang terjadi dan menulis manual
@@ -179,11 +186,10 @@ Semuanya dijelaskan di [`.env.example`](./.env.example). Ringkasnya:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | **ya** | Boleh terbaca browser; RLS yang menjaga data |
 | `NEXT_PUBLIC_FORMSPREE_ID` | tidak | Tanpa ini formulir kontak tidak dirender; yang tampil tombol kirim email |
 | `RATE_LIMIT_SALT` | tidak | Menyamarkan alamat IP pada penghitung pembatas laju |
-| `OPENROUTER_API_KEY` | tidak | Tanpa ini fitur terjemahan otomatis nonaktif; sisanya tetap jalan |
-| `OPENROUTER_MODEL` | tidak | Wajib bila kunci diisi. Tulis lengkap dengan penerbitnya, jangan alias |
-| `OPENROUTER_PROVIDER_ORDER` | tidak | Mengunci penyedia. Kosong = OpenRouter bebas berpindah |
-| `TRANSLATION_MAX_OUTPUT_TOKENS` | tidak | Plafon token untuk satu permintaan |
-| `TRANSLATION_MONTHLY_TOKEN_CAP` | tidak | Plafon token kumulatif per bulan kalender |
+| `DEEPL_API_KEY` | tidak | Tanpa ini fitur terjemahan otomatis nonaktif; sisanya tetap jalan. Kunci Free berakhiran `:fx` |
+| `DEEPL_ENGLISH_TARGET` | tidak | Ragam Inggris sasaran: `EN-GB` (bawaan) atau `EN-US`. DeepL menolak `EN` polos |
+| `DEEPL_MODEL_TYPE` | tidak | Varian mesin DeepL. Kosong = bawaan DeepL |
+| `TRANSLATION_MONTHLY_CHAR_CAP` | tidak | Plafon karakter kumulatif per bulan kalender |
 
 **Service-role key Supabase sengaja tidak pernah dipakai di mana pun.** Aplikasi hanya
 memegang kunci publishable, dan seluruh otorisasi dijalankan Row Level Security di
@@ -233,6 +239,19 @@ pengunjung melihat halaman galat Formspree sementara pesannya hilang — tanpa s
 sisi situs ini. Tidak ada cara mengetahui berapa pesan yang hilang. Kalau kelak ada integrasi
 pihak ketiga lain, jangan pernah menaruh nilai contoh di jalur yang bisa tayang: baca dari env,
 dan bila kosong, jangan render jalurnya.
+
+**Host DeepL tidak boleh dikonfigurasi manual.** `endpointForKey()` menurunkannya dari
+akhiran kunci: `:fx` → `api-free.deepl.com`, selain itu → `api.deepl.com`. Kunci Free yang
+dikirim ke host Pro menjawab `403`, dan `403` di sisi kami diklasifikasi sebagai "kunci
+ditolak" — pesannya menyuruh orang memeriksa kunci yang sebenarnya sudah benar. Jangan
+menambahkan env var untuk host "supaya fleksibel"; fleksibilitas itu hanya menambah satu
+kombinasi yang salah.
+
+**Urutan `escapeXml` lalu `protectTerms` tidak boleh dibalik.** Kalau dibalik, tag `<x>`
+pembungkus glosarium ikut ter-escape jadi `&lt;x&gt;`, DeepL membacanya sebagai teks biasa,
+dan seluruh perlindungan glosarium mati **tanpa satu pun galat** — istilah diterjemahkan,
+draft ditolak pemeriksaan akhir, dan sebabnya tidak kelihatan di mana pun. Lihat komentar di
+`src/lib/translate/index.ts`.
 
 **Slug diganti lewat `rename_post_slug()`, jangan `update posts set slug`.** Yang kedua
 melewati pencatatan riwayat dan mematikan redirect 301 tanpa memberi tanda apa pun.

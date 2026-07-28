@@ -198,37 +198,34 @@ export type Database = {
       };
       translation_runs: {
         Row: {
+          billed_characters: number;
           created_at: string;
           direction: string;
           error_note: string | null;
           id: string;
-          input_tokens: number;
           model: string;
-          output_tokens: number;
           post_id: string | null;
           provider: string;
           status: string;
         };
         Insert: {
+          billed_characters?: number;
           created_at?: string;
           direction: string;
           error_note?: string | null;
           id?: string;
-          input_tokens?: number;
           model: string;
-          output_tokens?: number;
           post_id?: string | null;
           provider: string;
           status: string;
         };
         Update: {
+          billed_characters?: number;
           created_at?: string;
           direction?: string;
           error_note?: string | null;
           id?: string;
-          input_tokens?: number;
           model?: string;
-          output_tokens?: number;
           post_id?: string | null;
           provider?: string;
           status?: string;
@@ -277,7 +274,7 @@ export type Database = {
       };
       rename_post_slug: { Args: { p_new_slug: string; p_post_id: string }; Returns: undefined };
       toggle_like: { Args: { p_post_id: string; p_visitor_hash: string }; Returns: string };
-      translation_tokens_this_month: { Args: never; Returns: number };
+      translation_characters_this_month: { Args: never; Returns: number };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

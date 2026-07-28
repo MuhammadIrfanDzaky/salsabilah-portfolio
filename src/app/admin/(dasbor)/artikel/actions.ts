@@ -369,8 +369,8 @@ export async function generateTranslationDraft(
           .order("term");
         return data ?? [];
       },
-      async tokensUsedThisMonth() {
-        const { data } = await guard.supabase.rpc("translation_tokens_this_month");
+      async charactersUsedThisMonth() {
+        const { data } = await guard.supabase.rpc("translation_characters_this_month");
         return typeof data === "number" ? data : 0;
       },
       async recordRun(row) {
@@ -380,8 +380,7 @@ export async function generateTranslationDraft(
           provider: row.provider,
           model: row.model,
           status: row.status,
-          input_tokens: row.inputTokens,
-          output_tokens: row.outputTokens,
+          billed_characters: row.billedCharacters,
           error_note: row.errorNote,
         });
       },
