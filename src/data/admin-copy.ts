@@ -10,7 +10,7 @@
  */
 
 export const adminCopy = {
-  brand: "Dasbor Salsabilah",
+  brand: "Dashboard",
 
   login: {
     title: "Masuk",
@@ -145,5 +145,5 @@ export const adminCopy = {
     retry: "Coba lagi",
   },
 
-  loading: "Memuat…",
+  loading: "Loading...",
 } as const;
