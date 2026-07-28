@@ -42,9 +42,17 @@ Format tulisan sengaja sederhana, hanya tiga aturan:
 |---|---|
 | baris kosong di antara paragraf | paragraf terpisah |
 | `## Judul bagian` di awal baris | subjudul |
+| `- ` di awal setiap baris satu blok | daftar berpoin |
 | `*kata*` | *miring* |
 
-Selain itu tidak ada format lain. Pratinjau di bawah formulir memakai komponen yang sama
+Daftar: tulis `- ` di awal **setiap** baris dalam satu blok, tanpa baris kosong di
+antaranya. Kalau ada satu baris saja yang tidak berawalan `- `, seluruh blok tetap
+jadi paragraf biasa — itu disengaja, supaya paragraf yang kebetulan diawali tanda
+hubung tidak berubah bentuk sendiri.
+
+Selain itu tidak ada format lain. **Tabel dan gambar di tengah tulisan belum ada.**
+Untuk perbandingan, tulis sebagai paragraf; untuk gambar, situs ini menyediakan satu
+cover per artikel. Pratinjau di bawah formulir memakai komponen yang sama
 persis dengan halaman publik, jadi yang terlihat di sana adalah yang akan terbit.
 
 ### Cover
@@ -71,11 +79,10 @@ Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang p
 
 - Hasilnya **selalu draft**. Sistem tidak pernah menandainya sudah ditinjau — itu hanya bisa
   Anda lakukan, dan artikel tidak bisa terbit tanpanya.
-- Istilah di glosarium **dilindungi otomatis**. Sebelum dikirim, setiap istilah dibungkus
-  penanda yang membuat penerjemah melewatinya — jadi nama spesies seperti *Heterotrigona
-  itama* dan istilah baku seperti `propolis` tidak bisa ikut berubah. Hasilnya tetap
-  diperiksa ulang setelahnya; kalau sampai ada yang berubah, draftnya ditolak seluruhnya
-  dan Anda diberi tahu istilah mana.
+- Istilah di glosarium **diperiksa otomatis pada hasilnya**. Kalau ada istilah yang
+  seharusnya utuh tapi ikut berubah, draftnya ditolak seluruhnya dan Anda diberi tahu
+  istilah mana. Pada praktiknya penolakan ini jarang: nama ilmiah seperti *Heterotrigona
+  itama* dan istilah serapan seperti `propolis` dipertahankan penerjemah tanpa diminta.
 - Glosariumnya **data, bukan kode** — isinya bisa tumbuh. Kalau Anda menulis di bidang baru
   (misalnya artikel pertama tentang lebah kelulut, yang istilahnya tidak ada di daftar awal
   berisi istilah ekonometrika), istilah barunya perlu dimasukkan lebih dulu. Tanpa itu
@@ -247,11 +254,19 @@ ditolak" — pesannya menyuruh orang memeriksa kunci yang sebenarnya sudah benar
 menambahkan env var untuk host "supaya fleksibel"; fleksibilitas itu hanya menambah satu
 kombinasi yang salah.
 
-**Urutan `escapeXml` lalu `protectTerms` tidak boleh dibalik.** Kalau dibalik, tag `<x>`
-pembungkus glosarium ikut ter-escape jadi `&lt;x&gt;`, DeepL membacanya sebagai teks biasa,
-dan seluruh perlindungan glosarium mati **tanpa satu pun galat** — istilah diterjemahkan,
-draft ditolak pemeriksaan akhir, dan sebabnya tidak kelihatan di mana pun. Lihat komentar di
-`src/lib/translate/index.ts`.
+**Jangan menambahkan `tag_handling` ke permintaan DeepL.** Godaannya kuat: bungkus istilah
+glosarium dalam tag lalu daftarkan di `ignore_tags`, dan pelanggaran glosarium jadi mustahil,
+bukan sekadar terdeteksi. Sudah dicoba dan **dibatalkan setelah diukur** pada panggilan
+sungguhan — tag XML diperlakukan DeepL sebagai penanda struktur, sehingga artikel 26 baris
+keluar jadi 62 baris, blok daftar pecah (tujuh butir terender jadi tiga), spasi di sekitar tag
+hilang (`menyergap kelulut` → `ambushingkelulut`), dan perlindungannya **tetap bocor**
+(`## Pemangsa kelulut` → `Predators of stingless bees`). `non_splitting_tags` memperbaiki
+spasinya saja.
+
+Teks polos justru unggul di ketiganya: sembilan dari sembilan istilah bertahan sendiri, dan
+struktur `<ul>/<li>/<h2>` sisi Inggris identik dengan sisi Indonesia. DeepL mempertahankan
+nama ilmiah dan istilah serapan tanpa diminta. Penegakan glosarium ada di `missingTerms()`,
+yang memeriksa hasil — persis bunyi K2 sejak awal. Alasan lengkapnya di `provider.ts`.
 
 **Slug diganti lewat `rename_post_slug()`, jangan `update posts set slug`.** Yang kedua
 melewati pencatatan riwayat dan mematikan redirect 301 tanpa memberi tanda apa pun.

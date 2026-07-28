@@ -31,15 +31,6 @@ export const REQUEST_TIMEOUT_MS = 90_000;
  */
 export const MAX_RETRIES = 1;
 
-/**
- * Tag pembungkus istilah glosarium.
- *
- * Dikirim ke DeepL lewat `ignore_tags`, jadi apa pun di dalamnya tidak
- * diterjemahkan. Namanya sengaja satu huruf dan tidak berarti apa-apa: makin
- * pendek, makin kecil peluang ia bertabrakan dengan teks Salsabilah sendiri.
- */
-export const GLOSSARY_TAG = "x";
-
 export type TranslationConfig = {
   apiKey: string;
   endpoint: string;

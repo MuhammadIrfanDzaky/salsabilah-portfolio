@@ -3,13 +3,7 @@ import "server-only";
 import type { Locale } from "@/lib/i18n";
 import { LIMITS, cleanText } from "@/lib/validation";
 import { MAX_SOURCE_CHARS, readTranslationConfig } from "./config";
-import {
-  escapeXml,
-  missingTerms,
-  protectTerms,
-  stripProtection,
-  type GlossaryTerm,
-} from "./glossary";
+import { missingTerms, type GlossaryTerm } from "./glossary";
 import { createDeeplProvider } from "./provider";
 
 /**
@@ -196,12 +190,10 @@ export async function translateArticle(
   const glossary = await deps.loadGlossary();
   const provider = createDeeplProvider(config);
 
-  // Urutan wajib: escape dulu, baru bungkus. Terbalik, tag pembungkusnya ikut
-  // ter-escape dan perlindungannya diam-diam tidak berlaku.
-  const dikirim = kolom.map((teks) => protectTerms(escapeXml(teks), glossary));
-
+  // Dikirim apa adanya. Percobaan membungkus istilah glosarium dalam tag XML
+  // dibatalkan setelah diukur — lihat catatan panjang di `provider.ts`.
   const hasil = await provider.send({
-    texts: dikirim,
+    texts: kolom,
     sourceLang: sourceLangFor(input.sourceLocale),
     targetLang: targetLangFor(input.targetLocale, config.englishTarget),
   });
@@ -227,7 +219,7 @@ export async function translateArticle(
     return { ok: false, status: "gagal-provider", message: pesan };
   }
 
-  const bentuk = validateShape(hasil.texts.map(stripProtection));
+  const bentuk = validateShape(hasil.texts);
   if (!bentuk.ok) {
     await deps.recordRun({
       postId: input.postId,

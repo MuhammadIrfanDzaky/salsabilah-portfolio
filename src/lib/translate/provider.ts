@@ -3,7 +3,6 @@ import "server-only";
 import {
   MAX_RETRIES,
   REQUEST_TIMEOUT_MS,
-  GLOSSARY_TAG,
   type TranslationConfig,
 } from "./config";
 
@@ -15,8 +14,8 @@ import {
  * yakni antarmuka *chat*, bukan antarmuka *terjemahan*. Klaim lama "pindah
  * provider berarti menulis satu file" karena itu tidak sepenuhnya benar —
  * abstraksinya terlanjur miring ke provider pertama. Bentuk sekarang bicara
- * dalam istilah pekerjaannya sendiri (teks, bahasa, istilah yang dilindungi),
- * sehingga provider berikutnya benar-benar cukup satu file.
+ * dalam istilah pekerjaannya sendiri (teks dan bahasa), sehingga provider
+ * berikutnya benar-benar cukup satu file.
  *
  * Perbedaan yang lebih penting daripada bentuknya: **tidak ada prompt.** Teks
  * Salsabilah dikirim sebagai data, bukan sebagai bagian dari instruksi, jadi
@@ -118,32 +117,52 @@ async function callOnce(
         target_lang: request.targetLang,
 
         /*
-         * Perlindungan glosarium (K2), dan alasan kombinasi ini persis begini:
+         * Wajib, dan ketiadaannya adalah kegagalan diam.
          *
-         * - `tag_handling: "xml"` + `ignore_tags` membuat istilah yang dibungkus
-         *   <x>…</x> dilewati mesin. Ini **pencegahan**, bukan penolakan
-         *   setelah rusak seperti pada LLM sebelumnya.
-         * - `outline_detection: false` mematikan tebakan struktur dokumen DeepL.
-         *   Teks di sini bukan XML sungguhan — cuma teks biasa yang kebetulan
-         *   memuat satu jenis tag milik kami. Membiarkan deteksi struktur menyala
-         *   mengundang DeepL menyusun ulang blok yang tidak pernah dimaksudkan
-         *   sebagai blok.
-         * - `preserve_formatting: true` menjaga baris kosong antarparagraf dan
-         *   awalan "## " tetap di tempatnya. Tanpa ini, struktur artikel bisa
-         *   berubah dan hasilnya gagal validasi tanpa sebab yang jelas.
-         *
-         * Glosarium native DeepL sengaja TIDAK dipakai: dokumentasinya menandai
-         * pasangan Indonesia tidak didukung, dan `ignore_tags` bekerja untuk
-         * pasangan bahasa mana pun.
+         * Tanpa `show_billed_characters`, DeepL menghilangkan `billed_characters`
+         * dari respons — bukan mengembalikan nol, melainkan tidak mengirimkannya
+         * sama sekali. Pembacaan `?? 0` di bawah lalu mencatat 0 pada setiap
+         * baris `translation_runs`, sehingga `translation_characters_this_month()`
+         * selamanya menjumlahkan nol dan plafon bulanan (competency 5) tidak
+         * pernah menyala. Terlihat pada panggilan sungguhan pertama 2026-07-28;
+         * seluruh pengujian sebelumnya memakai respons tiruan yang memuat
+         * kolom itu, jadi cacatnya tidak mungkin muncul di sana.
          */
-        tag_handling: "xml",
-        // Array, bukan string dipisah koma. Bentuk koma itu milik permintaan
-        // form-encoded; body JSON menuntut array, dan mengirim string di sini
-        // berisiko ditolak 400 — kegagalan yang akan terbaca seperti masalah
-        // teks, padahal soal bentuk permintaan.
-        ignore_tags: [GLOSSARY_TAG],
-        outline_detection: false,
+        show_billed_characters: true,
+
+        /*
+         * Menjaga baris kosong antarparagraf, awalan "## ", dan awalan "- " pada
+         * daftar tetap di tempatnya. Terverifikasi pada artikel penuh: 26 baris
+         * sumber keluar tepat 26 baris, tujuh baris daftar tetap tujuh, dan
+         * jumlah <ul>/<li>/<h2> hasil render sisi Inggris identik dengan sisi
+         * Indonesia.
+         */
         preserve_formatting: true,
+
+        /*
+         * TIDAK ADA `tag_handling` di sini, dan itu keputusan yang diukur, bukan
+         * kelalaian. Percobaan pertama membungkus istilah glosarium dalam
+         * `<x>…</x>` dengan `ignore_tags` — pencegahan yang di atas kertas lebih
+         * kuat daripada memeriksa hasil. Panggilan sungguhan membantahnya:
+         *
+         * - DeepL memperlakukan tag itu sebagai **struktural**, memecah kalimat
+         *   di setiap batas tag. Artikel 26 baris keluar jadi 62 baris, dan blok
+         *   daftar pecah sehingga tujuh butir terender jadi tiga.
+         * - Spasi di sekitar tag dilahap: "menyergap kelulut" jadi
+         *   "ambushingkelulut", "Madu kelulut" jadi "Honeykelulut".
+         * - Dan perlindungannya **tetap tidak menyeluruh** — "## Pemangsa kelulut"
+         *   tetap keluar sebagai "Predators of stingless bees".
+         *
+         * `non_splitting_tags` memperbaiki spasinya tapi tidak pemecahan barisnya.
+         *
+         * Teks polos ternyata lebih baik pada ketiganya sekaligus: seluruh
+         * sembilan istilah glosarium bertahan apa adanya (`kelulut` 3×,
+         * `propolis` 2×, `bee bread` 2×, enam nama takson masing-masing 1×) dan
+         * strukturnya utuh. **Pelajarannya: DeepL mempertahankan nama ilmiah dan
+         * istilah serapan tanpa diminta, dan memaksanya lewat tag justru merusak
+         * kalimat di sekitarnya.** Penegakan K2 karena itu kembali ke
+         * `missingTerms()` — memeriksa hasil, sesuai bunyi K2 sejak awal.
+         */
 
         ...(config.modelType ? { model_type: config.modelType } : {}),
       }),
