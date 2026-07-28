@@ -52,7 +52,14 @@ export interface TranslationProvider {
 type ChatCompletion = {
   model?: string;
   provider?: string;
-  choices?: Array<{ message?: { content?: string | null } }>;
+  choices?: Array<{
+    message?: { content?: string | null };
+    /**
+     * `"length"` berarti model berhenti karena kehabisan `max_tokens`, bukan
+     * karena selesai. Wajib dibaca — lihat penanganannya di `callOnce()`.
+     */
+    finish_reason?: string | null;
+  }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
   error?: { message?: string };
 };
@@ -150,7 +157,48 @@ async function callOnce(
       return { ok: false, kind: "permanen", note: "Provider menolak permintaan." };
     }
 
-    const text = data.choices?.[0]?.message?.content;
+    const choice = data.choices?.[0];
+    const text = choice?.message?.content;
+
+    /*
+     * `finish_reason: "length"` berarti model berhenti karena `max_tokens` habis,
+     * bukan karena selesai. Ditemukan lewat panggilan sungguhan pertama ke
+     * provider (2026-07-28); sebelum itu jalur ini tidak pernah teruji.
+     *
+     * **Isi yang sempat keluar tidak boleh dipakai.** Itu inti perbaikan ini.
+     * Terjemahan yang terpotong di tengah kalimat tetap lolos `validateShape()`,
+     * yang hanya memeriksa "tidak kosong" dan "tidak melebihi batas" — jadi
+     * tanpa pemeriksaan di sini, artikel yang separuh diterjemahkan bisa
+     * tersimpan sebagai draft yang tampak sah, tanpa satu pun penanda bahwa ada
+     * bagian yang hilang. Untuk `content: null` pemeriksaan di bawah sudah
+     * cukup; yang berbahaya justru saat potongannya berisi teks.
+     *
+     * Model penalaran membuat ini jauh dari kasus pinggir: `reasoning_tokens`
+     * ikut dihitung ke dalam `max_tokens` yang sama, dan pada model bawaan
+     * project ini penalaran memakan mayoritas anggaran — terukur 173 dari 201
+     * token keluaran hanya untuk menerjemahkan satu kalimat enam kata.
+     *
+     * **Tetap `sementara`, dan itu keputusan yang diukur, bukan bawaan.**
+     * Percobaan pertama menyimpulkan ini deterministik dan hendak menandainya
+     * `permanen` (retry hanya menggandakan pemakaian token, competency 5).
+     * Pengukurannya membantah: pada satu teks dan satu model yang sama,
+     * anggaran 240 token **berhasil** sementara 280 dan 320 gagal terpotong —
+     * panjang bagian penalaran berubah tiap panggilan, jadi anggaran yang sama
+     * bisa berhasil atau gagal tanpa ada yang diubah. Karena percobaan ulang
+     * memang punya peluang nyata untuk lolos, satu retry dibenarkan. Batas
+     * `MAX_RETRIES = 1` yang menjaga agar ini tidak jadi loop.
+     */
+    if (choice?.finish_reason === "length") {
+      return {
+        ok: false,
+        kind: "sementara",
+        note:
+          "Jawaban model terpotong sebelum selesai karena batas panjangnya habis — " +
+          'sering terjadi pada artikel panjang, dan pada model yang "berpikir" dulu ' +
+          "sebelum menjawab. Kalau berulang, TRANSLATION_MAX_OUTPUT_TOKENS perlu dinaikkan.",
+      };
+    }
+
     if (typeof text !== "string" || text.trim() === "") {
       return { ok: false, kind: "sementara", note: "Provider mengembalikan jawaban kosong." };
     }

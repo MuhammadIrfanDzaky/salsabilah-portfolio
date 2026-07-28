@@ -177,6 +177,7 @@ Semuanya dijelaskan di [`.env.example`](./.env.example). Ringkasnya:
 | `NEXT_PUBLIC_SITE_URL` | tidak | Domain produksi. Default sudah menunjuk domain saat ini |
 | `NEXT_PUBLIC_SUPABASE_URL` | **ya** | Aplikasi gagal start tanpa ini |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | **ya** | Boleh terbaca browser; RLS yang menjaga data |
+| `NEXT_PUBLIC_FORMSPREE_ID` | tidak | Tanpa ini formulir kontak tidak dirender; yang tampil tombol kirim email |
 | `RATE_LIMIT_SALT` | tidak | Menyamarkan alamat IP pada penghitung pembatas laju |
 | `OPENROUTER_API_KEY` | tidak | Tanpa ini fitur terjemahan otomatis nonaktif; sisanya tetap jalan |
 | `OPENROUTER_MODEL` | tidak | Wajib bila kunci diisi. Tulis lengkap dengan penerbitnya, jangan alias |
@@ -223,6 +224,15 @@ Alasannya ditulis panjang di file itu.
 **Setiap Server Action memeriksa otorisasi sendiri.** Layout dasbor tidak dijalankan
 sebelum action, jadi `requireAdmin()` di baris pertama setiap action adalah batas
 keamanan yang sebenarnya — bukan pengulangan yang bisa dihemat.
+
+**Formulir kontak hanya dirender bila `NEXT_PUBLIC_FORMSPREE_ID` terisi.** Endpoint-nya
+dulu di-hardcode `https://formspree.io/f/REPLACE_ME` dan tayang di produksi (setidaknya sejak
+deploy 2026-07-26; kemungkinan sejak one-pager pertama naik — tidak ada cara memastikannya).
+Endpoint itu menjawab **404**, dan karena formulir HTML biasa hanya berpindah halaman setelah POST,
+pengunjung melihat halaman galat Formspree sementara pesannya hilang — tanpa satu pun tanda di
+sisi situs ini. Tidak ada cara mengetahui berapa pesan yang hilang. Kalau kelak ada integrasi
+pihak ketiga lain, jangan pernah menaruh nilai contoh di jalur yang bisa tayang: baca dari env,
+dan bila kosong, jangan render jalurnya.
 
 **Slug diganti lewat `rename_post_slug()`, jangan `update posts set slug`.** Yang kedua
 melewati pencatatan riwayat dan mematikan redirect 301 tanpa memberi tanda apa pun.

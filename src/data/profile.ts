@@ -378,6 +378,17 @@ export const ui = {
         id: "Pesan langsung masuk ke surel saya — email juga bisa.",
       },
       send: { en: "Send message", id: "Kirim pesan" },
+      // Dipakai saat NEXT_PUBLIC_FORMSPREE_ID belum diisi. Lebih baik menawarkan
+      // jalur yang benar-benar jalan daripada formulir yang pesannya hilang.
+      fallbackNote: {
+        en: "Email is the most reliable way to reach me — your message arrives directly in my inbox.",
+        id: "Email adalah cara paling andal untuk menghubungi saya — pesan Anda langsung masuk ke surel saya.",
+      },
+      fallbackCta: { en: "Email me", id: "Kirim email" },
+      mailSubject: {
+        en: "Enquiry from your website",
+        id: "Pesan dari situs web Anda",
+      },
     },
   },
   footer: {
