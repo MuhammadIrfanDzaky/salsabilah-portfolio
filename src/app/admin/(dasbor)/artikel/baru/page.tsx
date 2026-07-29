@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { CoverPanel } from "@/components/admin/post-side-actions";
 import { PostForm } from "@/components/admin/post-form";
 import { adminCopy } from "@/data/admin-copy";
 import { describeDbError } from "@/lib/admin/errors";
@@ -49,10 +48,6 @@ export default async function ArtikelBaruPage() {
             cover_alt_en: "",
           }}
         />
-
-        {/* Cover butuh baris artikel untuk ditempeli, jadi panel ini hanya
-            menjelaskan urutannya sampai artikel tersimpan sekali. */}
-        <CoverPanel postId={null} coverUrl={null} coverAlt="" />
       </div>
     </>
   );

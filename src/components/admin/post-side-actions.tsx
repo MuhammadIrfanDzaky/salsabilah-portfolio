@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field, inputClasses } from "@/components/admin/field";
@@ -12,7 +11,6 @@ import {
   markTranslationReviewed,
   restorePost,
   unpublish,
-  uploadCover,
 } from "@/app/admin/(dasbor)/artikel/actions";
 import type { ActionResult } from "@/lib/admin/guard";
 import type { PostStatus } from "@/lib/admin/status";
@@ -60,63 +58,6 @@ function Pesan({ state }: { state: ActionResult | null }) {
     >
       {state.message}
     </p>
-  );
-}
-
-export function CoverPanel({
-  postId,
-  coverUrl,
-  coverAlt,
-}: {
-  postId: string | null;
-  coverUrl: string | null;
-  coverAlt: string;
-}) {
-  const [state, formAction] = useActionState<ActionResult | null, FormData>(uploadCover, null);
-
-  return (
-    <section className="rounded-[14px] border border-line bg-surface p-6">
-      <h2 className="m-0 mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
-        {adminCopy.editor.groupCover}
-      </h2>
-
-      {coverUrl ? (
-        <div className="mb-4 overflow-hidden rounded-[10px] border border-line">
-          <Image
-            src={coverUrl}
-            alt={coverAlt || adminCopy.editor.coverCurrent}
-            width={640}
-            height={360}
-            className="h-auto w-full"
-          />
-        </div>
-      ) : (
-        <p className="m-0 mb-4 text-[14px] text-muted">{adminCopy.editor.coverNone}</p>
-      )}
-
-      {postId ? (
-        <form action={formAction} className="flex flex-col gap-3">
-          <input type="hidden" name="postId" value={postId} />
-          <Field id="cover" label={adminCopy.editor.coverChoose} hint={adminCopy.editor.coverHint}>
-            {(props) => (
-              <input
-                {...props}
-                name="cover"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
-                className={`${inputClasses} py-2`}
-              />
-            )}
-          </Field>
-          <div>
-            <Submit label={adminCopy.editor.coverUpload} />
-          </div>
-          <Pesan state={state} />
-        </form>
-      ) : (
-        <p className="m-0 text-[13px] text-muted">{adminCopy.editor.coverSaveFirst}</p>
-      )}
-    </section>
   );
 }
 

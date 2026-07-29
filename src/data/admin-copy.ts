@@ -76,6 +76,7 @@ export const adminCopy = {
     saved: "Tersimpan.",
 
     groupIdentity: "Identitas",
+    groupAddress: "Alamat artikel",
     groupId: "Bahasa Indonesia",
     groupEn: "English",
     groupCover: "Cover",
@@ -108,7 +109,8 @@ export const adminCopy = {
     coverUploading: "Mengunggah…",
     coverHint:
       "JPEG, PNG, WebP, atau AVIF. Maksimal 5 MB, lebar minimal 600 piksel. Gambar diubah ke WebP dan data EXIF (termasuk lokasi GPS) dibuang otomatis.",
-    coverSaveFirst: "Simpan artikel dulu sebelum mengunggah cover.",
+    coverFailedAfterSave:
+      "Artikel tersimpan, tapi covernya gagal diunggah. Pilih gambarnya lagi di bawah, lalu simpan sekali lagi.",
 
     translationPending: "Terjemahan belum ditinjau.",
     translationReviewed: "Terjemahan sudah ditandai ditinjau.",
@@ -137,6 +139,12 @@ export const adminCopy = {
       "Menghapus permanen tidak bisa dibatalkan. Komentar, like, dan riwayat slug artikel ini ikut terhapus.",
     saving: "Menyimpan…",
     previewTitle: "Pratinjau",
+    previewShow: "Preview",
+    previewHide: "Tutup preview",
+    previewHint:
+      "Tekan Preview untuk melihat hasil tulisan Anda dalam kedua bahasa, persis seperti yang akan tampil di situs. Kolom bahasa satunya juga ikut terbuka di sana, siap ditinjau dan disunting.",
+    previewEmpty: "Belum ada isi untuk bahasa ini.",
+    coverChosen: "Gambar yang baru dipilih",
   },
 
   error: {

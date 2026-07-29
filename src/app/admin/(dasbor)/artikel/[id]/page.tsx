@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CoverPanel, LifecyclePanel, TranslationPanel } from "@/components/admin/post-side-actions";
+import { LifecyclePanel, TranslationPanel } from "@/components/admin/post-side-actions";
 import { PostForm } from "@/components/admin/post-form";
 import { adminCopy } from "@/data/admin-copy";
 import { describeDbError } from "@/lib/admin/errors";
@@ -13,13 +13,19 @@ export const dynamic = "force-dynamic";
 
 export default async function SuntingArtikelPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ cover?: string }>;
 }) {
   const guard = await requireAdmin();
   if (!guard.ok) redirect("/admin/masuk");
 
   const { id } = await params;
+  // Ditulis oleh `saveArticle` ketika artikelnya tersimpan tapi covernya tidak.
+  // Alihannya tetap dilakukan supaya tidak lahir baris kedua; penandalah yang
+  // memberi tahu apa yang belum beres.
+  const coverGagal = (await searchParams).cover === "gagal";
 
   const [{ data: post, error }, { data: categories }] = await Promise.all([
     guard.supabase.from("posts").select("*").eq("id", id).maybeSingle(),
@@ -58,15 +64,22 @@ export default async function SuntingArtikelPage({
       </div>
 
       <div className="flex flex-col gap-8">
-        <PostForm categories={categories ?? []} post={post} />
+        {coverGagal ? (
+          <div
+            role="alert"
+            className="rounded-[12px] border border-accent-strong/40 bg-accent/10 px-4 py-3 text-[14px] text-ink"
+          >
+            {adminCopy.editor.coverFailedAfterSave}
+          </div>
+        ) : null}
+
+        <PostForm
+          categories={categories ?? []}
+          post={post}
+          coverUrl={coverUrl(post.cover_path)}
+        />
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <CoverPanel
-            postId={post.id}
-            coverUrl={coverUrl(post.cover_path)}
-            coverAlt={post.cover_alt_id ?? ""}
-          />
-
           <div className="flex flex-col gap-8">
             <TranslationPanel
               postId={post.id}

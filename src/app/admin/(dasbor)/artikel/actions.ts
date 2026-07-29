@@ -87,6 +87,12 @@ export async function saveArticle(
   const postId = String(formData.get("postId") ?? "").trim();
   const intent = String(formData.get("intent") ?? "draft");
 
+  // Cover kini ikut dalam pengiriman formulir, bukan formulir terpisah, supaya
+  // gambarnya bisa dipilih sejak layar artikel baru. Diunggah setelah barisnya
+  // ada — sebelum itu tidak ada slug untuk menyusun nama berkasnya.
+  const coverFile = formData.get("cover");
+  const coverBaru = coverFile instanceof File && coverFile.size > 0 ? coverFile : null;
+
   const validCategoryIds = await loadCategories(guard);
   const parsed = validatePostForm(readForm(formData), { validCategoryIds });
   if (!parsed.ok) {
@@ -123,8 +129,18 @@ export async function saveArticle(
 
     if (error) return { ok: false, message: describeDbError(error, "simpan-artikel-baru") };
 
+    // Kegagalan cover tidak boleh membatalkan artikel yang sudah tersimpan —
+    // mengembalikan galat di sini akan meninggalkan formulir tanpa `postId`,
+    // dan simpan berikutnya membuat baris kedua. Jadi tetap dialihkan, dengan
+    // penanda supaya layar sunting bisa mengatakan apa yang gagal.
+    let coverGagal = false;
+    if (coverBaru) {
+      const hasil = await simpanCover(guard, data.id, coverBaru);
+      coverGagal = !hasil.ok;
+    }
+
     revalidatePublic();
-    redirect(`/admin/artikel/${data.id}?tersimpan=1`);
+    redirect(`/admin/artikel/${data.id}?tersimpan=1${coverGagal ? "&cover=gagal" : ""}`);
   }
 
   // ------------------------------------------------------------- artikel ada
@@ -177,6 +193,18 @@ export async function saveArticle(
     .eq("id", postId);
 
   if (error) return { ok: false, message: describeDbError(error, "simpan-artikel") };
+
+  if (coverBaru) {
+    const hasil = await simpanCover(guard, postId, coverBaru);
+    // Isi artikel sudah tersimpan pada titik ini, jadi pesannya harus
+    // mengatakan keduanya. "Gagal" saja akan membuat orang mengetik ulang
+    // artikel yang sebenarnya sudah aman.
+    if (!hasil.ok) {
+      revalidatePublic();
+      revalidatePath(`/admin/artikel/${postId}`);
+      return { ok: false, message: `Artikel tersimpan, tapi cover gagal: ${hasil.message}` };
+    }
+  }
 
   revalidatePublic();
   revalidatePath(`/admin/artikel/${postId}`);
@@ -426,13 +454,22 @@ const PESAN_COVER: Record<string, string> = {
   "too-small": "Lebar gambar minimal 600 piksel.",
 };
 
-export async function uploadCover(
-  _previous: ActionResult | null,
-  formData: FormData,
+/**
+ * Memproses satu berkas cover dan menempelkannya ke sebuah artikel.
+ *
+ * Dipisahkan dari `uploadCover` karena `saveArticle` kini memanggilnya juga:
+ * cover boleh dipilih sejak layar artikel baru, sebelum ada baris apa pun untuk
+ * ditempeli. Berkasnya ikut dalam pengiriman formulir, dan diunggah tepat
+ * setelah barisnya lahir — jadi urutan "simpan dulu, baru cover" tidak lagi
+ * dipaksakan kepada penulisnya.
+ *
+ * Pembatas lajunya dipanggil di sini supaya berlaku pada kedua jalur masuk.
+ */
+async function simpanCover(
+  guard: Extract<GuardResult, { ok: true }>,
+  postId: string,
+  file: File,
 ): Promise<ActionResult> {
-  const guard = await requireAdmin();
-  if (!guard.ok) return { ok: false, message: TIDAK_BERWENANG };
-
   const withinLimit = await consumeRateLimit(
     `unggah-cover:${guard.userId}`,
     RATE_LIMITS.coverUpload.limit,
@@ -442,14 +479,6 @@ export async function uploadCover(
   // membebani dirinya sendiri, bukan menjaga dari orang luar.
   if (!withinLimit) {
     return { ok: false, message: "Terlalu banyak unggahan. Coba lagi dalam satu jam." };
-  }
-
-  const postId = String(formData.get("postId") ?? "").trim();
-  const file = formData.get("cover");
-
-  if (!postId) return { ok: false, message: "Simpan artikel dulu sebelum mengunggah cover." };
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "Pilih berkas gambar dulu." };
   }
 
   // Ditolak lebih awal supaya 5 MB tidak perlu dibaca ke memori hanya untuk
@@ -511,3 +540,12 @@ export async function uploadCover(
   revalidatePath(`/admin/artikel/${postId}`);
   return { ok: true, message: "Cover diperbarui." };
 }
+
+/*
+ * `uploadCover` sebagai Server Action tersendiri sudah DIHAPUS (2026-07-29).
+ *
+ * Cover kini bagian dari formulir artikel, jadi action itu tidak dipanggil
+ * siapa pun. Meninggalkannya bukan sekadar kode mati: setiap Server Action yang
+ * ter-ekspor adalah endpoint POST yang benar-benar bisa dijangkau dari luar,
+ * apa pun yang dirender halaman. Permukaan yang tidak dipakai tetap permukaan.
+ */

@@ -61,12 +61,48 @@ function ActionButton({
   );
 }
 
+/** Satu sisi bahasa di dalam pratinjau. */
+function PreviewPane({
+  legend,
+  title,
+  body,
+  empty,
+}: {
+  legend: string;
+  title: string;
+  body: string;
+  empty: string;
+}) {
+  return (
+    <div>
+      <p className="m-0 mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+        {legend}
+      </p>
+      {title.trim() || body.trim() ? (
+        <>
+          {title.trim() ? (
+            <h3 className="m-0 mb-4 font-serif text-[24px] font-semibold leading-[1.2] text-ink">
+              {title}
+            </h3>
+          ) : null}
+          <PostBody body={body} />
+        </>
+      ) : (
+        <p className="m-0 text-[14px] text-muted">{empty}</p>
+      )}
+    </div>
+  );
+}
+
 export function PostForm({
   post,
   categories,
+  coverUrl,
 }: {
   post: EditablePost;
   categories: CategoryOption[];
+  /** URL cover yang sudah tersimpan. Diturunkan di server; klien tidak tahu bentuk path Storage. */
+  coverUrl?: string | null;
 }) {
   const [state, formAction] = useActionState<ActionResult | null, FormData>(saveArticle, null);
   const errorBoxRef = useRef<HTMLDivElement>(null);
@@ -82,6 +118,8 @@ export function PostForm({
 
   const [sourceLocale, setSourceLocale] = useState(post.source_locale || "id");
   const [slug, setSlug] = useState(post.slug);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [bodyId, setBodyId] = useState(post.body_id ?? "");
   const [bodyEn, setBodyEn] = useState(post.body_en ?? "");
   const [titleId, setTitleId] = useState(post.title_id ?? "");
@@ -93,13 +131,39 @@ export function PostForm({
     title_en: titleEn,
     body_id: bodyId,
     body_en: bodyEn,
-    cover_path: post.cover_path,
+    // Berkas yang baru dipilih ikut dihitung: cermin syarat terbit tidak boleh
+    // menuduh "cover belum ada" padahal gambarnya sudah terpasang di formulir
+    // dan akan terunggah pada simpan berikutnya.
+    cover_path: post.cover_path ?? (coverFile ? "dipilih" : null),
     published_at: publishedAt ? "ada" : null,
     translation_status: post.translation_status,
   });
 
   const sourceTitle = sourceLocale === "en" ? titleEn : titleId;
-  const previewBody = sourceLocale === "en" ? bodyEn : bodyId;
+
+  /**
+   * Pratinjau cover: berkas yang baru dipilih menang atas yang sudah tersimpan.
+   *
+   * `URL.createObjectURL` menahan berkasnya di memori sampai dicabut, jadi
+   * pencabutannya dijadwalkan pada pembersihan efek. Tanpa itu, memilih gambar
+   * berkali-kali membocorkan satu berkas per pilihan.
+   */
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!coverFile) {
+      setObjectUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(coverFile);
+    setObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverFile]);
+
+  const coverPreview = objectUrl
+    ? { url: objectUrl, baru: true }
+    : coverUrl
+      ? { url: coverUrl, baru: false }
+      : null;
 
   function fillSlugFromTitle() {
     if (post.id) return; // slug artikel yang sudah ada tidak diubah diam-diam
@@ -139,21 +203,41 @@ export function PostForm({
         </legend>
 
         <div className="grid gap-5 md:grid-cols-2">
+          {/* Cover menempati posisi yang dulu dipakai slug. Alasannya bukan
+              estetika: gambar adalah keputusan yang diambil penulis di awal,
+              sedangkan slug adalah detail teknis yang tidak perlu dilihat
+              sampai artikelnya siap. */}
           <Field
-            id="slug"
-            label={adminCopy.editor.slug}
-            hint={adminCopy.editor.slugHint}
-            error={fields.slug}
+            id="cover"
+            label={adminCopy.editor.coverChoose}
+            hint={adminCopy.editor.coverHint}
           >
             {(props) => (
-              <input
-                {...props}
-                name="slug"
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className={`${inputClasses} font-mono`}
-              />
+              <div className="flex flex-col gap-3">
+                {coverPreview ? (
+                  <div className="overflow-hidden rounded-[10px] border border-line">
+                    {/* Pratinjau lokal memakai <img> biasa, bukan next/image:
+                        sumbernya blob: dari berkas yang belum terunggah, yang
+                        tidak bisa dioptimasi loader mana pun. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverPreview.url}
+                      alt={coverPreview.baru ? adminCopy.editor.coverChosen : adminCopy.editor.coverCurrent}
+                      className="h-auto w-full"
+                    />
+                  </div>
+                ) : (
+                  <p className="m-0 text-[14px] text-muted">{adminCopy.editor.coverNone}</p>
+                )}
+                <input
+                  {...props}
+                  name="cover"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+                  className={`${inputClasses} py-2`}
+                />
+              </div>
             )}
           </Field>
 
@@ -215,8 +299,22 @@ export function PostForm({
       </fieldset>
 
       {/* ------------------------------------------------------ dua bahasa */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <fieldset className="m-0 border-0 p-0">
+      {/*
+        Sisi bahasa yang BUKAN sumber disembunyikan sampai Preview ditekan.
+        Yang ditulis Salsabilah hanya satu bahasa; sisi satunya diisi mesin dan
+        hanya perlu dilihat saat ditinjau, jadi menampilkannya sejak awal cuma
+        menggandakan layar tanpa menambah pekerjaan yang bisa dia lakukan.
+
+        Disembunyikan lewat atribut `hidden`, BUKAN dengan tidak merendernya.
+        Bedanya menentukan: elemen yang tidak dirender tidak ikut dalam
+        pengiriman formulir, sehingga terjemahan yang sudah ada akan terhapus
+        diam-diam pada simpan berikutnya. `hidden` menyembunyikan dari layar dan
+        dari urutan fokus, tapi nilainya tetap terkirim.
+      */}
+      {/* Satu kolom penuh saat hanya bahasa sumber yang tampil — kolom kedua
+          yang kosong akan menyempitkan ruang menulis tanpa alasan. */}
+      <div className={`grid gap-8 ${showPreview ? "lg:grid-cols-2" : ""}`}>
+        <fieldset className="m-0 border-0 p-0" hidden={!showPreview && sourceLocale !== "id"}>
           <legend className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
             {adminCopy.editor.groupId}
             {sourceLocale === "id" ? " · sumber" : ""}
@@ -284,7 +382,7 @@ export function PostForm({
           </div>
         </fieldset>
 
-        <fieldset className="m-0 border-0 p-0">
+        <fieldset className="m-0 border-0 p-0" hidden={!showPreview && sourceLocale !== "en"}>
           <legend className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
             {adminCopy.editor.groupEn}
             {sourceLocale === "en" ? " · sumber" : ""}
@@ -354,17 +452,74 @@ export function PostForm({
       </div>
 
       {/* -------------------------------------------------------- pratinjau */}
-      {previewBody.trim() ? (
-        <section className="rounded-[14px] border border-line bg-surface p-6">
-          <h2 className="m-0 mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
+      <section className="rounded-[14px] border border-line bg-surface p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="m-0 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
             {adminCopy.editor.previewTitle}
           </h2>
-          {/* Dirender lewat komponen yang sama dengan halaman publik, jadi yang
-              terlihat di sini persis yang akan terbit — dan seperti di sana,
-              tidak ada dangerouslySetInnerHTML di mana pun. */}
-          <PostBody body={previewBody} />
-        </section>
-      ) : null}
+          {/* type="button" wajib. Tanpa itu tombol di dalam <form> ikut mengirim
+              formulir, dan menekan "Preview" akan menyimpan artikel. */}
+          <button
+            type="button"
+            onClick={() => setShowPreview((on) => !on)}
+            aria-expanded={showPreview}
+            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-ink transition-opacity hover:opacity-85"
+          >
+            {showPreview ? adminCopy.editor.previewHide : adminCopy.editor.previewShow}
+          </button>
+        </div>
+
+        {showPreview ? (
+          <div className="mt-5 grid gap-8 lg:grid-cols-2">
+            {/* Dirender lewat komponen yang sama dengan halaman publik, jadi
+                yang terlihat di sini persis yang akan terbit — dan seperti di
+                sana, tidak ada dangerouslySetInnerHTML di mana pun. */}
+            <PreviewPane
+              legend={adminCopy.editor.groupId}
+              title={titleId}
+              body={bodyId}
+              empty={adminCopy.editor.previewEmpty}
+            />
+            <PreviewPane
+              legend={adminCopy.editor.groupEn}
+              title={titleEn}
+              body={bodyEn}
+              empty={adminCopy.editor.previewEmpty}
+            />
+          </div>
+        ) : (
+          <p className="m-0 mt-3 text-[13px] text-muted">{adminCopy.editor.previewHint}</p>
+        )}
+      </section>
+
+      {/* ------------------------------------------------------------ slug */}
+      {/* Ditaruh paling bawah dengan sengaja. Slug adalah detail teknis yang
+          terisi sendiri dari judul; menempatkannya di atas membuat layar
+          pertama yang dilihat penulis diawali sesuatu yang bukan urusannya. */}
+      <fieldset className="m-0 border-0 p-0">
+        <legend className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
+          {adminCopy.editor.groupAddress}
+        </legend>
+        <div className="md:max-w-[520px]">
+          <Field
+            id="slug"
+            label={adminCopy.editor.slug}
+            hint={adminCopy.editor.slugHint}
+            error={fields.slug}
+          >
+            {(props) => (
+              <input
+                {...props}
+                name="slug"
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className={`${inputClasses} font-mono`}
+              />
+            )}
+          </Field>
+        </div>
+      </fieldset>
 
       {/* ------------------------------------------------- syarat + tombol */}
       <section className="rounded-[14px] border border-line bg-surface p-6">
