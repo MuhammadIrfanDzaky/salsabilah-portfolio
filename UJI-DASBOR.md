@@ -32,7 +32,7 @@ dibuktikan adalah lingkungan yang sungguhan dipakai.
 | 1.6 | **Pilih gambar** → foto asli dari HP (JPEG, >600px, <5MB) → **Unggah cover** | Tombol jadi "Mengunggah…", lalu cover tampil. **Jalur `File → Server Action → Storage → cover_path` belum pernah diuji utuh** | |
 | 1.7 | Coba unggah file `.svg` | Ditolak — SVG memang dilarang karena bisa memuat script | |
 | 1.8 | Coba unggah gambar berlebar < 600px | Ditolak dengan alasan ukuran terlalu kecil | |
-| 1.9 | Tanpa mengisi sisi Inggris, tekan **Terbitkan sekarang** | **"Belum semua syarat terpenuhi. Periksa daftar di atas tombol terbit."** Constraint `23514` sudah terbukti menolak di database; yang diuji di sini pemetaannya jadi kalimat Indonesia | |
+| 1.9 | Tanpa mengisi sisi Inggris, tekan **Terbitkan sekarang** | **"Belum semua syarat terbit terpenuhi. Periksa daftar di atas tombol terbit."** Constraint `23514` sudah terbukti menolak di database; yang diuji di sini pemetaannya jadi kalimat Indonesia | |
 | 1.10 | Periksa daftar **Syarat terbit** | Tujuh baris; yang belum beres bertanda × — judul EN, isi EN, dan terjemahan ditinjau | |
 
 ## Sesi 2 — Terjemahan otomatis
