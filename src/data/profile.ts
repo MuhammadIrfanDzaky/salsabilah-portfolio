@@ -29,6 +29,7 @@ export type Profile = {
   kicker: Localized;
   tagline: Localized;
   bio: Localized[];
+  degree: { label: Localized; value: Localized }[];
   facts: { label: Localized; value: Localized }[];
   stats: { value: string; label: Localized }[];
   location: Localized;
@@ -47,43 +48,54 @@ export type Profile = {
 };
 
 export const profile: Profile = {
-  name: "Salsabilah",
+  name: "Salsabillah",
   credentials: "S.P., M.P.",
-  displayName: "Salsabilah, S.P., M.P.",
+  displayName: "Salsabillah, S.P., M.P.",
   role: {
     en: "Agricultural Economist · Researcher",
     id: "Ekonom Pertanian · Peneliti",
   },
   kicker: {
-    en: "Agricultural Economics · International Trade",
-    id: "Ekonomi Pertanian · Perdagangan Internasional",
+    en: "Agricultural Economics · Agribusiness · International Trade",
+    id: "Ekonomi Pertanian · Agribisnis · Perdagangan Internasional",
   },
   tagline: {
-    en: "I study the competitiveness of Indonesia's agricultural exports — from coconut and clove to nutmeg and palm oil — and what global markets mean for farmers and food systems.",
-    id: "Saya meneliti daya saing ekspor pertanian Indonesia — dari kelapa dan cengkeh hingga pala dan kelapa sawit — serta makna pasar global bagi petani dan sistem pangan.",
+    // en: "I study the competitiveness of Indonesia's agricultural exports — from coconut and clove to nutmeg and palm oil — and what global markets mean for farmers and food systems.",
+    // id: "Saya meneliti daya saing ekspor pertanian Indonesia — dari kelapa dan cengkeh hingga pala dan kelapa sawit — serta makna pasar global bagi petani dan sistem pangan.",
+    en: "A space to share insights, research experiences, and ideas related to agricultural economics and agribusiness.",
+    id: "Ruang untuk membagikan pembelajaran, pengalaman riset, dan pemikiran seputar ekonomi pertanian dan agribisnis.",
   },
   bio: [
     {
-      en: "I am an agricultural economics researcher at Universitas Sumatera Utara in Medan, where I serve as assistant to the Dean of the Faculty of Agriculture and have worked as a research assistant since 2023. My research examines the export performance and international competitiveness of Indonesian agricultural commodities — coconut, clove, nutmeg, palm oil, and edible bird's nest among them.",
-      id: "Saya adalah peneliti ekonomi pertanian di Universitas Sumatera Utara, Medan, tempat saya bertugas sebagai Asisten Dekan Fakultas Pertanian dan bekerja sebagai asisten peneliti sejak 2023. Riset saya mengkaji kinerja ekspor dan daya saing internasional komoditas pertanian Indonesia — di antaranya kelapa, cengkeh, pala, kelapa sawit, dan sarang burung walet.",
+      en: "I hold a master’s degree in Agribusiness from Universitas Sumatera Utara, with a focus on agricultural commodity trade, export competitiveness, and food systems.",
+      id: "Saya merupakan lulusan Magister Agribisnis Universitas Sumatera Utara dengan minat pada perdagangan komoditas pertanian, daya saing ekspor, dan sistem pangan.",
     },
     {
-      en: "I hold a Bachelor of Agribusiness (S.P.) from Universitas Sumatera Utara (GPA 3.58 of 4.00, 2019–2023), with coursework spanning econometrics, research methods, operations research, risk management, credit and banking, human resource management, and agricultural project evaluation.",
-      id: "Saya meraih gelar Sarjana Agribisnis (S.P.) dari Universitas Sumatera Utara (IPK 3,58 dari 4,00, 2019–2023), dengan bidang minat meliputi ekonometrika, metode penelitian, riset operasional, manajemen risiko, perkreditan dan perbankan, manajemen sumber daya manusia, serta evaluasi proyek pertanian.",
+      en: "Currently, I am engaged in academic work as a teaching assistant at Universitas Sumatera Utara. My research experience includes studies on coconuts, cloves, nutmeg, oil palm, and swiftlet nests.",
+      id: "Saat ini, saya terlibat dalam kegiatan akademik sebagai asisten dosen di Universitas Sumatera Utara. Pengalaman penelitian saya mencakup kajian tentang kelapa, cengkeh, pala, kelapa sawit, dan sarang burung walet.",
     },
     {
-      en: "My work pairs careful empirical analysis — RCA, gravity models, ARDL, and time-series methods in SPSS and EViews — with policy relevance, and I welcome collaboration with researchers and institutions working on trade, food systems, and rural development.",
-      id: "Karya saya memadukan analisis empiris yang cermat — RCA, model gravitasi, ARDL, dan metode runtun waktu dengan SPSS dan EViews — dengan relevansi kebijakan, dan saya terbuka untuk kolaborasi dengan peneliti maupun institusi di bidang perdagangan, sistem pangan, dan pembangunan perdesaan.",
+      en: "This blog serves as a space to share lessons learned, research experiences, and thoughts on agricultural economics and agribusiness.",
+      id: "Blog ini menjadi ruang untuk membagikan pembelajaran, pengalaman penelitian, dan pemikiran seputar ekonomi pertanian dan agribisnis.",
     },
   ],
-  facts: [
+  degree: [
     {
       label: { en: "Degree", id: "Gelar" },
       value: {
-        en: "B.Agribusiness (S.P.) · Universitas Sumatera Utara, 2023",
+        en: "Master of Agribusiness · Universitas Sumatera Utara, 2026",
+        id: "Magister Agribisnis (M.P.) · Universitas Sumatera Utara, 2026",
+      },
+    },
+    {
+      label: { en: "Degree", id: "Gelar" },
+      value: {
+        en: "Bachelor of Agribusiness · Universitas Sumatera Utara, 2023",
         id: "Sarjana Agribisnis (S.P.) · Universitas Sumatera Utara, 2023",
       },
     },
+  ],
+  facts: [
     {
       label: { en: "Institution", id: "Institusi" },
       value: {
@@ -92,17 +104,10 @@ export const profile: Profile = {
       },
     },
     {
-      label: { en: "Focus areas", id: "Bidang fokus" },
+      label: { en: "Focus area", id: "Bidang fokus" },
       value: {
-        en: "Agricultural export competitiveness · Commodity markets",
-        id: "Daya saing ekspor pertanian · Pasar komoditas",
-      },
-    },
-    {
-      label: { en: "Methods", id: "Metode" },
-      value: {
-        en: "RCA & gravity models · ARDL · Time-series (SPSS, EViews)",
-        id: "RCA & model gravitasi · ARDL · Runtun waktu (SPSS, EViews)",
+        en: "Agricultural Economics",
+        id: "Ekonomi Pertanian",
       },
     },
     {
@@ -141,8 +146,8 @@ export const profile: Profile = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://salsabilah.vercel.app",
   seo: {
     title: {
-      en: "Salsabilah, S.P., M.P. — Agricultural Economist & Researcher",
-      id: "Salsabilah, S.P., M.P. — Ekonom Pertanian & Peneliti",
+      en: "Salsabillah, S.P., M.P. — Agricultural Economist & Researcher",
+      id: "Salsabillah, S.P., M.P. — Ekonom Pertanian & Peneliti",
     },
     description: {
       en: "Agricultural economics researcher at Universitas Sumatera Utara studying the export competitiveness of Indonesian agricultural commodities in international markets.",
@@ -152,6 +157,32 @@ export const profile: Profile = {
 };
 
 export const publications: Publication[] = [
+  {
+    title: {
+      en: "Analysis of the factors influencing the export volume of indonesian edible bird’s nests to major destination countries",
+      id: "Analysis of the factors influencing the export volume of indonesian edible bird’s nests to major destination countries",
+    },
+    venue: {
+      en: "IOP Conference Series: Earth and Environmental Science — international proceedings",
+      id: "IOP Conference Series: Earth and Environmental Science — prosiding internasional",
+    },
+    authors: "Salsabillah, Tavi Supriana, Tasya Chairuna Pane",
+    year: 2026,
+    url: "https://iopscience.iop.org/article/10.1088/1755-1315/1632/1/012026",
+  },
+  {
+    title: {
+      en: "The impact of climate change on the productivity of exported spice commodities in North Sumatera",
+      id: "The impact of climate change on the productivity of exported spice commodities in North Sumatera",
+    },
+    venue: {
+      en: "IOP Conference Series: Earth and Environmental Science — international proceedings",
+      id: "IOP Conference Series: Earth and Environmental Science — prosiding internasional",
+    },
+    authors: "Dear Tumangdo Sinaga, Tavi Supriana, Tasya Chairuna Pane, Salsabillah",
+    year: 2026,
+    url: "https://iopscience.iop.org/article/10.1088/1755-1315/1632/1/012027",
+  },
   {
     title: {
       en: "Sustainable Competitiveness and Market Share of Indonesia's Coconut Exports in Major Destination Countries",
@@ -235,8 +266,8 @@ export const publications: Publication[] = [
 export const experience: Experience[] = [
   {
     role: {
-      en: "Assistant to the Dean, Faculty of Agriculture",
-      id: "Asisten Dekan Fakultas Pertanian",
+      en: "Teaching Assistant, Faculty of Agriculture",
+      id: "Asisten Dosen Fakultas Pertanian",
     },
     organization: {
       en: "Universitas Sumatera Utara, Medan",
@@ -245,26 +276,8 @@ export const experience: Experience[] = [
     period: { en: "July 2023 – Present", id: "Juli 2023 – Sekarang" },
     details: [
       {
-        en: "Supporting the Dean's office of the Faculty of Agriculture in academic administration and faculty programmes.",
-        id: "Mendukung kantor Dekan Fakultas Pertanian dalam administrasi akademik dan program fakultas.",
-      },
-    ],
-  },
-  {
-    role: { en: "Research Assistant", id: "Asisten Peneliti" },
-    organization: {
-      en: "Universitas Sumatera Utara, Medan",
-      id: "Universitas Sumatera Utara, Medan",
-    },
-    period: { en: "July 2023 – July 2024", id: "Juli 2023 – Juli 2024" },
-    details: [
-      {
-        en: "Research project: trend and competitiveness analysis of Indonesia's edible bird's nest exports, and the factors shaping export demand and competitiveness in international markets.",
-        id: "Proyek penelitian: analisis trend dan daya saing ekspor sarang burung walet Indonesia serta faktor-faktor yang mempengaruhi permintaan ekspor dan daya saing di pasar internasional.",
-      },
-      {
-        en: "Research project: comprehensive analysis of the competitiveness and exports of Indonesian clove in international markets and their contribution to Indonesia's economic growth.",
-        id: "Proyek penelitian: analisis komprehensif daya saing dan ekspor cengkeh Indonesia di pasar internasional serta kontribusinya terhadap pertumbuhan ekonomi Indonesia.",
+        en: "Supporting faculty members’ teaching and research activities, including the preparation of course materials, student mentoring, data processing, and academic administration.",
+        id: "Mendukung kegiatan pengajaran dan penelitian dosen, termasuk penyiapan materi perkuliahan, pendampingan mahasiswa, pengolahan data, dan administrasi akademik.",
       },
     ],
   },
@@ -293,6 +306,24 @@ export const experience: Experience[] = [
       {
         en: "9th International Conference on Agriculture, Environment, and Food Security (ICAEFS).",
         id: "9th International Conference on Agriculture, Environment, and Food Security (ICAEFS).",
+      },
+    ],
+  },
+  {
+    role: { en: "Research Assistant", id: "Asisten Peneliti" },
+    organization: {
+      en: "Universitas Sumatera Utara, Medan",
+      id: "Universitas Sumatera Utara, Medan",
+    },
+    period: { en: "July 2023 – July 2024", id: "Juli 2023 – Juli 2024" },
+    details: [
+      {
+        en: "Research project: trend and competitiveness analysis of Indonesia's edible bird's nest exports, and the factors shaping export demand and competitiveness in international markets.",
+        id: "Proyek penelitian: analisis trend dan daya saing ekspor sarang burung walet Indonesia serta faktor-faktor yang mempengaruhi permintaan ekspor dan daya saing di pasar internasional.",
+      },
+      {
+        en: "Research project: comprehensive analysis of the competitiveness and exports of Indonesian clove in international markets and their contribution to Indonesia's economic growth.",
+        id: "Proyek penelitian: analisis komprehensif daya saing dan ekspor cengkeh Indonesia di pasar internasional serta kontribusinya terhadap pertumbuhan ekonomi Indonesia.",
       },
     ],
   },
@@ -335,10 +366,6 @@ export const ui = {
   publications: {
     kicker: { en: "02 · Publications", id: "02 · Publikasi" },
     title: { en: "Research & publications", id: "Riset & publikasi" },
-    lead: {
-      en: "Peer-reviewed proceedings, posters, and registered works on the trade and competitiveness of Indonesian agricultural commodities.",
-      id: "Prosiding telaah sejawat, poster, dan karya tercatat tentang perdagangan dan daya saing komoditas pertanian Indonesia.",
-    },
     view: { en: "View", id: "Lihat" },
     resume: { en: "My Resume (PDF)", id: "Resume Saya (PDF)" },
   },

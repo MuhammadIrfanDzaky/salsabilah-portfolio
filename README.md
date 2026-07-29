@@ -1,6 +1,6 @@
 # Portofolio & Blog Salsabilah
 
-Situs portofolio akademik Salsabilah, S.P., M.P. — satu halaman profil dalam dua bahasa
+Situs portofolio akademik Salsabillah, S.P., M.P. — satu halaman profil dalam dua bahasa
 (Indonesia & Inggris) plus blog yang ditulis dan diterbitkan sendiri lewat dasbor admin.
 
 - **Live:** https://salsabilah.vercel.app

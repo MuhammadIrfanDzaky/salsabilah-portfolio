@@ -4,7 +4,7 @@ import { isLocale, type Locale } from "@/lib/i18n";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Salsabilah, S.P., M.P. — Agricultural Economist & Researcher";
+export const alt = "Salsabillah, S.P., M.P. — Agricultural Economist & Researcher";
 
 export default async function OpengraphImage({
   params,

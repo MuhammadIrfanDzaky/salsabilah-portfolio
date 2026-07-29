@@ -10,20 +10,8 @@ export function Publications({ locale }: { locale: Locale }) {
           <SectionHeading
             kicker={ui.publications.kicker}
             title={ui.publications.title}
-            lead={ui.publications.lead}
             locale={locale}
           />
-          <a
-            href={profile.cvPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-full bg-accent-strong px-6 py-3 text-[15px] font-semibold text-on-accent no-underline transition-colors hover:bg-green hover:text-on-green"
-          >
-            <span>{ui.publications.resume[locale]}</span>
-            <span aria-hidden="true" className="font-mono">
-              ↗
-            </span>
-          </a>
         </div>
 
         <ol className="m-0 mt-[clamp(28px,4vw,40px)] flex list-none flex-col p-0">

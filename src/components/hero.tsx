@@ -41,13 +41,12 @@ export function Hero({ locale }: { locale: Locale }) {
         <div className="grid items-center gap-[clamp(36px,6vw,80px)] max-lg:gap-4 short:gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
           <div>
             <p className="mb-5 flex items-center gap-3.5 max-lg:mb-2.5 short:mb-2">
-              <span className="h-px w-9 flex-none bg-sand" />
               <span className="font-mono text-[12.5px] uppercase tracking-[0.16em] text-accent-strong max-lg:text-[11px] short:text-[10px]">
                 {profile.kicker[locale]}
               </span>
             </p>
             <h1 className="mb-5 font-serif text-[clamp(42px,7vw,80px)] font-semibold leading-[1.03] tracking-[-0.015em] text-ink [text-wrap:balance] max-lg:mb-3 max-lg:text-[clamp(32px,8.5vw,46px)] short:mb-2 short:text-[clamp(26px,7vw,36px)]">
-              {profile.displayName}
+              {profile.name}
             </h1>
             <p className="mb-4 font-serif text-[clamp(19px,2.4vw,23px)] font-medium italic leading-[1.4] text-green max-lg:mb-2.5 max-lg:text-[17px] short:mb-2 short:text-[15px] dark:text-sage">
               {profile.role[locale]}
