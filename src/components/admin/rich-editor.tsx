@@ -229,6 +229,97 @@ function ModalTautan({
   );
 }
 
+
+/**
+ * Modal keterangan gambar.
+ *
+ * Menggantikan `window.prompt`, yang selain tidak bisa ditata juga tidak punya
+ * tempat menjelaskan untuk apa kolomnya. Keterangan gambar bukan hiasan: ia
+ * yang dibacakan pembaca layar, dan ikut terindeks pencarian. Kotak abu-abu
+ * peramban tidak bisa mengatakan itu.
+ *
+ * Boleh dikosongkan — gambar yang murni dekoratif memang sebaiknya tidak
+ * mengganggu pembaca layar. Yang salah adalah menuliskan "gambar" atau nama
+ * berkas, dan itu disebut di sini supaya tidak terjadi.
+ */
+function ModalKeterangan({
+  onSimpan,
+  onBatal,
+}: {
+  onSimpan: (alt: string) => void;
+  onBatal: () => void;
+}) {
+  const [nilai, setNilai] = useState("");
+  const kolom = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    kolom.current?.focus();
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onBatal();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="judul-keterangan"
+        className="w-full max-w-[480px] rounded-[14px] border border-line bg-surface p-6 shadow-xl"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onBatal();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onSimpan(nilai.trim());
+          }
+        }}
+      >
+        <h2 id="judul-keterangan" className="m-0 mb-1 font-serif text-[20px] font-semibold text-ink">
+          Keterangan gambar
+        </h2>
+        <p className="m-0 mb-4 text-[13px] leading-relaxed text-muted">
+          Jelaskan isi gambarnya dalam satu kalimat. Ini yang dibacakan kepada pembaca
+          tunanetra, tampil sebagai keterangan di bawah gambar, dan ikut terindeks
+          pencarian. Tulis <em>apa yang terlihat</em> — bukan &ldquo;gambar&rdquo; atau nama
+          berkasnya.
+        </p>
+
+        <input
+          ref={kolom}
+          type="text"
+          value={nilai}
+          onChange={(e) => setNilai(e.target.value)}
+          placeholder="Peserta pelatihan memindahkan log sarang kelulut"
+          className={inputClasses}
+        />
+
+        <p className="m-0 mt-2 text-[12.5px] text-muted">
+          Boleh dikosongkan bila gambarnya murni hiasan dan tidak membawa informasi.
+        </p>
+
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onBatal}
+            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-ink transition-opacity hover:opacity-85"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={() => onSimpan(nilai.trim())}
+            className="inline-flex items-center rounded-full bg-accent-strong px-5 py-2 text-[14px] font-semibold text-on-accent transition-opacity hover:opacity-85"
+          >
+            Sisipkan gambar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Toolbar({
   editor,
   onInsertImage,
@@ -425,6 +516,7 @@ export function RichEditor({
   const [galat, setGalat] = useState<string | null>(null);
   const [mengunggah, setMengunggah] = useState(false);
   const pemilihBerkas = useRef<HTMLInputElement>(null);
+  const [pathGambar, setPathGambar] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: ARTICLE_EXTENSIONS,
@@ -445,6 +537,16 @@ export function RichEditor({
     },
   });
 
+  /*
+   * Unggah dulu, tanya keterangan sesudahnya.
+   *
+   * Urutan ini disengaja: kalau keterangannya ditanya lebih dulu dan
+   * unggahannya kemudian gagal, orang sudah menulis kalimat untuk gambar yang
+   * tidak pernah masuk. Menunggu beberapa detik jauh lebih murah daripada itu.
+   *
+   * Path-nya ditahan di state sampai modalnya dijawab; `insertContent` baru
+   * jalan setelahnya.
+   */
   async function sisipkanGambar(file: File) {
     if (!editor) return;
     setGalat(null);
@@ -458,20 +560,30 @@ export function RichEditor({
         setGalat(hasil.message);
         return;
       }
-
-      // Hanya teks alternatif bahasa sumber yang ditanyakan. Sisi Inggrisnya
-      // diisi jalur terjemahan bersama isi artikel — meminta dua bahasa di
-      // sini menggandakan pekerjaan untuk sesuatu yang memang akan
-      // diterjemahkan juga.
-      const alt = window.prompt("Keterangan gambar (untuk pembaca layar):", "") ?? "";
-
-      editor.chain().focus().insertContent({
-        type: "image",
-        attrs: { src: hasil.path, altId: alt.trim(), altEn: "" },
-      }).run();
+      setPathGambar(hasil.path);
     } finally {
       setMengunggah(false);
     }
+  }
+
+  function pasangGambar(alt: string) {
+    if (!editor || !pathGambar) return;
+    // Hanya teks alternatif bahasa sumber yang ditanyakan. Sisi Inggrisnya diisi
+    // jalur terjemahan bersama isi artikel — meminta dua bahasa di sini
+    // menggandakan pekerjaan untuk sesuatu yang memang akan diterjemahkan juga.
+    editor
+      .chain()
+      .focus()
+      .insertContent({ type: "image", attrs: { src: pathGambar, altId: alt, altEn: "" } })
+      .run();
+    setPathGambar(null);
+  }
+
+  async function batalkanGambar() {
+    // Gambarnya sudah terunggah tapi tidak jadi dipakai. Dibiarkan pun aman —
+    // `bersihkanGambarYatim` membuangnya pada simpan berikutnya karena tidak
+    // ada node yang merujuknya.
+    setPathGambar(null);
   }
 
   return (
@@ -500,6 +612,10 @@ export function RichEditor({
           if (file) void sisipkanGambar(file);
         }}
       />
+
+      {pathGambar ? (
+        <ModalKeterangan onSimpan={pasangGambar} onBatal={() => void batalkanGambar()} />
+      ) : null}
 
       <EditorContent editor={editor} />
 

@@ -176,6 +176,41 @@ export async function saveArticle(
 
   // ------------------------------------------------------------ artikel baru
   if (!postId) {
+    /*
+     * Cover diunggah SEBELUM barisnya dibuat, dan urutan itu wajib.
+     *
+     * `posts_publish_requires_reviewed_bilingual` menuntut `cover_path` terisi
+     * saat status 'published'. Versi sebelumnya menyisipkan baris dulu lalu
+     * menempelkan covernya — jadi menerbitkan artikel baru dengan cover yang
+     * dipilih di formulir SELALU ditolak constraint, sementara cermin "Syarat
+     * terbit" di layar menyatakan semuanya sudah terpenuhi. Cermin dan database
+     * berbeda pendapat, dan yang menang database.
+     *
+     * Bisa dilakukan lebih dulu karena nama berkasnya cuma butuh slug, dan slug
+     * sudah ada di formulir — tidak perlu menunggu id.
+     */
+    let coverPath: string | null = null;
+    let coverGagal = false;
+    if (coverBaru) {
+      const unggah = await unggahCover(guard, value.slug, coverBaru);
+      if (unggah.ok) coverPath = unggah.path;
+      else coverGagal = true;
+    }
+
+    /*
+     * Gagal mengunggah cover + niat menerbitkan = berhenti di sini, sebelum
+     * insert. Kalau diteruskan, CHECK constraint yang menolak, dan pesannya
+     * jadi "Belum semua syarat terbit terpenuhi" — menyuruh orang memeriksa
+     * daftar yang justru menyatakan semuanya sudah beres. Aman berhenti karena
+     * belum ada baris yang lahir: isian formulirnya utuh dan tinggal diulang.
+     */
+    if (coverGagal && status === "published") {
+      return {
+        ok: false,
+        message: "Cover gagal diunggah, jadi artikelnya belum bisa terbit. Coba pilih gambarnya lagi.",
+      };
+    }
+
     const { data, error } = await guard.supabase
       .from("posts")
       .insert({
@@ -183,24 +218,24 @@ export async function saveArticle(
         doc_id: toJson(docs.id),
         doc_en: toJson(docs.en),
         translation_status: ditinjau ? "reviewed" : "pending",
+        ...(coverPath ? { cover_path: coverPath } : {}),
         status,
         published_at: publishedAt,
       })
       .select("id")
       .single();
 
-    if (error) return { ok: false, message: describeDbError(error, "simpan-artikel-baru") };
+    if (error) {
+      // Barisnya gagal lahir, jadi covernya tidak dirujuk siapa pun. Dibuang
+      // daripada meninggalkan berkas yang tidak akan pernah ditemukan lagi.
+      if (coverPath) await guard.supabase.storage.from("post-covers").remove([coverPath]);
+      return { ok: false, message: describeDbError(error, "simpan-artikel-baru") };
+    }
 
-    // Kegagalan cover tidak boleh membatalkan artikel yang sudah tersimpan —
+    // Kegagalan cover tidak membatalkan artikel yang sudah tersimpan —
     // mengembalikan galat di sini akan meninggalkan formulir tanpa `postId`,
     // dan simpan berikutnya membuat baris kedua. Jadi tetap dialihkan, dengan
     // penanda supaya layar sunting bisa mengatakan apa yang gagal.
-    let coverGagal = false;
-    if (coverBaru) {
-      const hasil = await simpanCover(guard, data.id, coverBaru);
-      coverGagal = !hasil.ok;
-    }
-
     revalidatePublic();
     redirect(`/admin/artikel/${data.id}?tersimpan=1${coverGagal ? "&cover=gagal" : ""}`);
   }
@@ -208,7 +243,7 @@ export async function saveArticle(
   // ------------------------------------------------------------- artikel ada
   const { data: existing, error: loadError } = await guard.supabase
     .from("posts")
-    .select("id, slug, status, published_at, doc_id, doc_en")
+    .select("id, slug, status, published_at, cover_path, doc_id, doc_en")
     .eq("id", postId)
     .maybeSingle();
 
@@ -234,6 +269,24 @@ export async function saveArticle(
     }
   }
 
+  /*
+   * Cover diunggah SEBELUM update, alasan yang sama dengan jalur artikel baru:
+   * `posts_publish_requires_reviewed_bilingual` menuntut `cover_path` terisi
+   * saat status 'published'. Artikel yang belum punya cover lalu diterbitkan
+   * bersamaan dengan gambar barunya akan ditolak constraint kalau covernya baru
+   * ditempel sesudah update.
+   */
+  let coverBaruPath: string | null = null;
+  if (coverBaru) {
+    const unggah = await unggahCover(guard, value.slug, coverBaru);
+    if (!unggah.ok) {
+      // Belum ada yang tersimpan, jadi berhenti di sini aman — dan jauh lebih
+      // jelas daripada menyimpan separuh lalu melaporkan dua hal sekaligus.
+      return { ok: false, message: `Cover gagal diunggah: ${unggah.message}` };
+    }
+    coverBaruPath = unggah.path;
+  }
+
   // Kolom slug sengaja tidak ikut: penggantiannya sudah ditangani di atas,
   // dan menuliskannya lagi di sini akan melewati pencatatan riwayat.
   const { error } = await guard.supabase
@@ -256,12 +309,26 @@ export async function saveArticle(
           : {}),
       cover_alt_id: value.cover_alt_id,
       cover_alt_en: value.cover_alt_en,
+      ...(coverBaruPath ? { cover_path: coverBaruPath } : {}),
       status,
       published_at: publishedAt,
     })
     .eq("id", postId);
 
-  if (error) return { ok: false, message: describeDbError(error, "simpan-artikel") };
+  if (error) {
+    // Update gagal, jadi covernya tidak dirujuk siapa pun.
+    if (coverBaruPath) await guard.supabase.storage.from("post-covers").remove([coverBaruPath]);
+    return { ok: false, message: describeDbError(error, "simpan-artikel") };
+  }
+
+  // Baru setelah barisnya menunjuk cover baru, yang lama boleh dibuang —
+  // urutan sebaliknya menyisakan artikel tanpa gambar bila update gagal.
+  if (coverBaruPath) {
+    const lama = existing.cover_path;
+    if (lama && !lama.startsWith("/") && !lama.startsWith("http") && lama !== coverBaruPath) {
+      await guard.supabase.storage.from("post-covers").remove([lama]);
+    }
+  }
 
   // Dijalankan setelah dokumen barunya tersimpan, bukan sebelum: kalau
   // penyimpanan gagal di tengah jalan, gambar yang masih dipakai sudah
@@ -271,18 +338,6 @@ export async function saveArticle(
     [sanitizeDoc(existing.doc_id), sanitizeDoc(existing.doc_en)],
     [docs.id, docs.en],
   );
-
-  if (coverBaru) {
-    const hasil = await simpanCover(guard, postId, coverBaru);
-    // Isi artikel sudah tersimpan pada titik ini, jadi pesannya harus
-    // mengatakan keduanya. "Gagal" saja akan membuat orang mengetik ulang
-    // artikel yang sebenarnya sudah aman.
-    if (!hasil.ok) {
-      revalidatePublic();
-      revalidatePath(`/admin/artikel/${postId}`);
-      return { ok: false, message: `Artikel tersimpan, tapi cover gagal: ${hasil.message}` };
-    }
-  }
 
   revalidatePublic();
   revalidatePath(`/admin/artikel/${postId}`);
@@ -541,21 +596,26 @@ const PESAN_COVER: Record<string, string> = {
 };
 
 /**
- * Memproses satu berkas cover dan menempelkannya ke sebuah artikel.
+ * Memproses satu berkas cover dan menaruhnya di Storage. Tidak menyentuh tabel.
  *
- * Dipisahkan dari `uploadCover` karena `saveArticle` kini memanggilnya juga:
- * cover boleh dipilih sejak layar artikel baru, sebelum ada baris apa pun untuk
- * ditempeli. Berkasnya ikut dalam pengiriman formulir, dan diunggah tepat
- * setelah barisnya lahir — jadi urutan "simpan dulu, baru cover" tidak lagi
- * dipaksakan kepada penulisnya.
+ * Pemisahan itu yang penting. Versi sebelumnya (`simpanCover`) menempelkan
+ * cover ke barisnya **sesudah** insert/update, dan itu asal bug terbit:
+ * `posts_publish_requires_reviewed_bilingual` menuntut `cover_path` terisi saat
+ * status 'published', jadi barisnya ditolak constraint sebelum covernya sempat
+ * terpasang — sementara cermin "Syarat terbit" di layar menyatakan semuanya
+ * sudah beres. Kedua jalur simpan kini mengunggah lebih dulu dan menyertakan
+ * `cover_path` dalam pernyataan yang sama.
  *
- * Pembatas lajunya dipanggil di sini supaya berlaku pada kedua jalur masuk.
+ * Bisa dilakukan lebih dulu karena nama berkasnya hanya butuh slug, dan slug
+ * sudah ada di formulir — tidak perlu menunggu id.
+ *
+ * Pembatas lajunya dipanggil di sini supaya berlaku pada setiap jalur masuk.
  */
-async function simpanCover(
+async function unggahCover(
   guard: Extract<GuardResult, { ok: true }>,
-  postId: string,
+  slug: string,
   file: File,
-): Promise<ActionResult> {
+): Promise<{ ok: true; path: string } | { ok: false; message: string }> {
   const withinLimit = await consumeRateLimit(
     `unggah-cover:${guard.userId}`,
     RATE_LIMITS.coverUpload.limit,
@@ -573,15 +633,6 @@ async function simpanCover(
     return { ok: false, message: PESAN_COVER["too-large"]! };
   }
 
-  const { data: post, error: loadError } = await guard.supabase
-    .from("posts")
-    .select("slug, cover_path")
-    .eq("id", postId)
-    .maybeSingle();
-
-  if (loadError) return { ok: false, message: describeDbError(loadError, "muat-cover") };
-  if (!post) return { ok: false, message: "Artikel tidak ditemukan." };
-
   let processed;
   try {
     processed = await processCoverImage(await file.arrayBuffer());
@@ -593,38 +644,17 @@ async function simpanCover(
     return { ok: false, message: "Gambar tidak bisa diproses." };
   }
 
-  const path = buildCoverPath(post.slug);
-  const { error: uploadError } = await guard.supabase.storage
+  const path = buildCoverPath(slug);
+  const { error } = await guard.supabase.storage
     .from("post-covers")
     .upload(path, processed.data, { contentType: processed.contentType, upsert: false });
 
-  if (uploadError) {
-    console.error("[unggah-cover] storage:", uploadError.message);
+  if (error) {
+    console.error("[unggah-cover] storage:", error.message);
     return { ok: false, message: "Gagal mengunggah ke penyimpanan." };
   }
 
-  const { error: updateError } = await guard.supabase
-    .from("posts")
-    .update({ cover_path: path })
-    .eq("id", postId);
-
-  if (updateError) {
-    // Baris gagal diperbarui: objek yang baru diunggah jadi yatim, jadi buang
-    // lagi daripada meninggalkan sampah yang tidak dirujuk siapa pun.
-    await guard.supabase.storage.from("post-covers").remove([path]);
-    return { ok: false, message: describeDbError(updateError, "simpan-cover") };
-  }
-
-  // Baru setelah baris menunjuk ke cover baru, cover lama boleh dibuang —
-  // urutan sebaliknya menyisakan artikel tanpa gambar bila update gagal.
-  const lama = post.cover_path;
-  if (lama && !lama.startsWith("/") && !lama.startsWith("http") && lama !== path) {
-    await guard.supabase.storage.from("post-covers").remove([lama]);
-  }
-
-  revalidatePublic();
-  revalidatePath(`/admin/artikel/${postId}`);
-  return { ok: true, message: "Cover diperbarui." };
+  return { ok: true, path };
 }
 
 export type ImageUploadResult = { ok: true; path: string } | { ok: false; message: string };
