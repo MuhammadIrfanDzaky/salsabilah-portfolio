@@ -7,7 +7,7 @@ import { RichEditor } from "@/components/admin/rich-editor";
 import { sanitizeDoc, docToPlainText, type Doc } from "@/lib/doc";
 import { Field, inputClasses } from "@/components/admin/field";
 import { adminCopy } from "@/data/admin-copy";
-import { saveArticle } from "@/app/admin/(dasbor)/artikel/actions";
+import { saveArticle, translateFormContent } from "@/app/admin/(dasbor)/artikel/actions";
 import type { ActionResult } from "@/lib/admin/guard";
 import type { Locale } from "@/lib/i18n";
 import { slugify } from "@/lib/slug";
@@ -128,13 +128,8 @@ export function PostForm({
   const [slug, setSlug] = useState(post.slug);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  // Dokumen awal dihitung SEKALI. `initialDoc` hanya dibaca saat editor lahir;
-  // memberinya nilai baru tiap render tidak berbahaya, tapi menyesatkan pembaca
-  // kode berikutnya yang mengira isinya ikut tersinkron.
-  const [docIdAwal] = useState<Doc>(() => sanitizeDoc(post.doc_id));
-  const [docEnAwal] = useState<Doc>(() => sanitizeDoc(post.doc_en));
-  const [docId, setDocId] = useState<Doc>(docIdAwal);
-  const [docEn, setDocEn] = useState<Doc>(docEnAwal);
+  const [docId, setDocId] = useState<Doc>(() => sanitizeDoc(post.doc_id));
+  const [docEn, setDocEn] = useState<Doc>(() => sanitizeDoc(post.doc_en));
 
   // Cermin teks polos, dipakai cermin "Syarat terbit" dan pratinjau kosong.
   // Diturunkan, bukan disimpan terpisah — satu sumber kebenaran.
@@ -142,6 +137,30 @@ export function PostForm({
   const bodyEn = docToPlainText(docEn);
   const [titleId, setTitleId] = useState(post.title_id ?? "");
   const [titleEn, setTitleEn] = useState(post.title_en ?? "");
+
+  /*
+   * Keempat kolom ini dulu tak terkendali (`defaultValue`). Sejak Preview
+   * mengisi sisi terjemahan lewat DeepL, keempatnya harus bisa diisi program —
+   * nilai `defaultValue` tidak berubah setelah komponen lahir, jadi hasil
+   * terjemahan tidak akan pernah terlihat.
+   */
+  const [excerptId, setExcerptId] = useState(post.excerpt_id ?? "");
+  const [excerptEn, setExcerptEn] = useState(post.excerpt_en ?? "");
+  const [coverAltId, setCoverAltId] = useState(post.cover_alt_id ?? "");
+  const [coverAltEn, setCoverAltEn] = useState(post.cover_alt_en ?? "");
+
+  /*
+   * `RichEditor` hanya membaca `initialDoc` saat lahir. Untuk memasang dokumen
+   * hasil terjemahan, editornya dipasang ulang lewat `key` yang berubah.
+   * Dipilih daripada mengekspos `editor.commands.setContent` ke luar: penghitung
+   * ini tidak bisa dipanggil pada waktu yang salah, sedangkan perintah editor
+   * bisa — dan menimpa isi editor di tengah pengetikan adalah kehilangan data.
+   */
+  const [revisiId, setRevisiId] = useState(0);
+  const [revisiEn, setRevisiEn] = useState(0);
+
+  const [menerjemahkan, setMenerjemahkan] = useState(false);
+  const [galatTerjemah, setGalatTerjemah] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState(utcIsoToWibInput(post.published_at));
 
   const kurang = publishBlockers({
@@ -182,6 +201,91 @@ export function PostForm({
     : coverUrl
       ? { url: coverUrl, baru: false }
       : null;
+
+  /*
+   * Sisi sasaran = bahasa yang BUKAN sumber. Inilah yang diisi mesin.
+   *
+   * "Kosong" dinilai dari judul dan isi, bukan dari ringkasan atau alt cover:
+   * keduanya boleh kosong pada artikel yang sah, jadi memakainya sebagai
+   * penanda akan membuat terjemahan otomatis berhenti berjalan tanpa sebab
+   * yang terlihat.
+   */
+  const targetKosong =
+    sourceLocale === "id"
+      ? !titleEn.trim() && docEn.content.length === 0
+      : !titleId.trim() && docId.content.length === 0;
+
+  const sumberAdaIsinya = sourceLocale === "id"
+    ? Boolean(titleId.trim() || docId.content.length > 0)
+    : Boolean(titleEn.trim() || docEn.content.length > 0);
+
+  /**
+   * Menerjemahkan sisi sumber ke sisi sasaran lewat DeepL.
+   *
+   * Isi formulir dikirim apa adanya ke Server Action — TIDAK memuat ulang dari
+   * database, karena pada layar artikel baru belum ada baris untuk dimuat.
+   * Itu justru inti perbaikan ini.
+   */
+  async function terjemahkan() {
+    setGalatTerjemah(null);
+    setMenerjemahkan(true);
+    try {
+      const data = new FormData();
+      data.append("postId", post.id ?? "");
+      data.append("sourceLocale", sourceLocale);
+      data.append("titleId", titleId);
+      data.append("titleEn", titleEn);
+      data.append("excerptId", excerptId);
+      data.append("excerptEn", excerptEn);
+      data.append("coverAltId", coverAltId);
+      data.append("coverAltEn", coverAltEn);
+      data.append("docId", JSON.stringify(docId));
+      data.append("docEn", JSON.stringify(docEn));
+
+      const hasil = await translateFormContent(data);
+      if (!hasil.ok) {
+        setGalatTerjemah(hasil.message);
+        return false;
+      }
+
+      // Hanya sisi sasaran yang disentuh. Sisi sumber adalah tulisan
+      // Salsabilah sendiri dan tidak pernah ditimpa mesin.
+      if (sourceLocale === "id") {
+        setTitleEn(hasil.title);
+        setExcerptEn(hasil.excerpt);
+        setCoverAltEn(hasil.coverAlt);
+        setDocEn(hasil.doc);
+        setRevisiEn((n) => n + 1);
+      } else {
+        setTitleId(hasil.title);
+        setExcerptId(hasil.excerpt);
+        setCoverAltId(hasil.coverAlt);
+        setDocId(hasil.doc);
+        setRevisiId((n) => n + 1);
+      }
+      return true;
+    } finally {
+      setMenerjemahkan(false);
+    }
+  }
+
+  /**
+   * Tombol Preview.
+   *
+   * Menerjemahkan **hanya** bila sisi sasaran masih kosong. Sisi yang sudah ada
+   * isinya tidak pernah ditimpa di sini — kalau Salsabilah sudah memperbaiki
+   * terjemahannya, menekan Preview untuk sekadar melihat hasilnya tidak boleh
+   * menghapus pekerjaan itu. Menimpa hanya lewat tombol "Terjemahkan ulang",
+   * yang mengatakan sendiri apa yang akan terjadi.
+   */
+  async function bukaPreview() {
+    if (showPreview) {
+      setShowPreview(false);
+      return;
+    }
+    if (targetKosong && sumberAdaIsinya) await terjemahkan();
+    setShowPreview(true);
+  }
 
   function fillSlugFromTitle() {
     if (post.id) return; // slug artikel yang sudah ada tidak diubah diam-diam
@@ -361,7 +465,8 @@ export function PostForm({
                   name="excerptId"
                   rows={2}
                   maxLength={LIMITS.excerpt}
-                  defaultValue={post.excerpt_id ?? ""}
+                  value={excerptId}
+                  onChange={(e) => setExcerptId(e.target.value)}
                   className={`${inputClasses} resize-y`}
                 />
               )}
@@ -373,7 +478,14 @@ export function PostForm({
               hint={adminCopy.editor.bodyHint}
               error={fields.bodyId}
             >
-              {() => <RichEditor name="docId" initialDoc={docIdAwal} onChange={setDocId} />}
+              {() => (
+                <RichEditor
+                  key={`docId-${revisiId}`}
+                  name="docId"
+                  initialDoc={docId}
+                  onChange={setDocId}
+                />
+              )}
             </Field>
 
             <Field id="coverAltId" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltId}>
@@ -383,7 +495,8 @@ export function PostForm({
                   name="coverAltId"
                   type="text"
                   maxLength={LIMITS.coverAlt}
-                  defaultValue={post.cover_alt_id ?? ""}
+                  value={coverAltId}
+                  onChange={(e) => setCoverAltId(e.target.value)}
                   className={inputClasses}
                 />
               )}
@@ -420,7 +533,8 @@ export function PostForm({
                   name="excerptEn"
                   rows={2}
                   maxLength={LIMITS.excerpt}
-                  defaultValue={post.excerpt_en ?? ""}
+                  value={excerptEn}
+                  onChange={(e) => setExcerptEn(e.target.value)}
                   className={`${inputClasses} resize-y`}
                 />
               )}
@@ -432,7 +546,14 @@ export function PostForm({
               hint={adminCopy.editor.bodyHint}
               error={fields.bodyEn}
             >
-              {() => <RichEditor name="docEn" initialDoc={docEnAwal} onChange={setDocEn} />}
+              {() => (
+                <RichEditor
+                  key={`docEn-${revisiEn}`}
+                  name="docEn"
+                  initialDoc={docEn}
+                  onChange={setDocEn}
+                />
+              )}
             </Field>
 
             <Field id="coverAltEn" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltEn}>
@@ -442,7 +563,8 @@ export function PostForm({
                   name="coverAltEn"
                   type="text"
                   maxLength={LIMITS.coverAlt}
-                  defaultValue={post.cover_alt_en ?? ""}
+                  value={coverAltEn}
+                  onChange={(e) => setCoverAltEn(e.target.value)}
                   className={inputClasses}
                 />
               )}
@@ -457,17 +579,49 @@ export function PostForm({
           <h2 className="m-0 font-mono text-[11px] uppercase tracking-[0.14em] text-accent-strong">
             {adminCopy.editor.previewTitle}
           </h2>
-          {/* type="button" wajib. Tanpa itu tombol di dalam <form> ikut mengirim
-              formulir, dan menekan "Preview" akan menyimpan artikel. */}
-          <button
-            type="button"
-            onClick={() => setShowPreview((on) => !on)}
-            aria-expanded={showPreview}
-            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-ink transition-opacity hover:opacity-85"
-          >
-            {showPreview ? adminCopy.editor.previewHide : adminCopy.editor.previewShow}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Muncul hanya saat ada yang bisa ditimpa. Terpisah dari Preview
+                dengan sengaja: menimpa terjemahan yang sudah disunting adalah
+                kehilangan pekerjaan, jadi harus diminta, bukan terjadi sebagai
+                efek samping dari ingin melihat hasil. */}
+            {showPreview && !targetKosong && sumberAdaIsinya ? (
+              <button
+                type="button"
+                onClick={() => void terjemahkan()}
+                disabled={menerjemahkan}
+                title={adminCopy.editor.retranslateHint}
+                className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-muted transition-opacity hover:opacity-85 disabled:opacity-60"
+              >
+                {menerjemahkan ? adminCopy.editor.previewTranslating : adminCopy.editor.retranslate}
+              </button>
+            ) : null}
+
+            {/* type="button" wajib. Tanpa itu tombol di dalam <form> ikut mengirim
+                formulir, dan menekan "Preview" akan menyimpan artikel. */}
+            <button
+              type="button"
+              onClick={() => void bukaPreview()}
+              disabled={menerjemahkan}
+              aria-expanded={showPreview}
+              className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-ink transition-opacity hover:opacity-85 disabled:opacity-60"
+            >
+              {menerjemahkan
+                ? adminCopy.editor.previewTranslating
+                : showPreview
+                  ? adminCopy.editor.previewHide
+                  : adminCopy.editor.previewShow}
+            </button>
+          </div>
         </div>
+
+        {galatTerjemah ? (
+          <p
+            role="alert"
+            className="m-0 mt-4 rounded-[10px] border border-accent-strong/40 bg-accent/10 px-3.5 py-2.5 text-[13.5px] text-ink"
+          >
+            {galatTerjemah}
+          </p>
+        ) : null}
 
         {showPreview ? (
           <div className="mt-5 grid gap-8 lg:grid-cols-2">

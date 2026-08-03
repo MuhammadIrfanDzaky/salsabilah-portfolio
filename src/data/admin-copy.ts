@@ -115,12 +115,8 @@ export const adminCopy = {
     translationPending: "Terjemahan belum ditinjau.",
     translationReviewed: "Terjemahan sudah ditandai ditinjau.",
     markReviewed: "Tandai terjemahan sudah ditinjau",
-    generateDraft: "Buat draft terjemahan",
-    generateDraftBusy: "Menerjemahkan…",
-    generateDraftHint:
-      "Mesin menerjemahkan dari bahasa sumber ke bahasa satunya. Hasilnya selalu draft: baca ulang dan perbaiki sebelum menandainya sudah ditinjau. Istilah di glosarium diperiksa otomatis — kalau ada yang ikut diterjemahkan, draftnya ditolak.",
-    generateDraftBlocked:
-      "Tersedia untuk artikel berstatus draf. Tarik artikel dari publik dulu bila ingin membuat ulang terjemahannya.",
+    translationHint:
+      "Terjemahan dibuat lewat tombol Preview di dalam formulir di atas. Hasilnya selalu draft: baca ulang dan perbaiki sebelum menandainya sudah ditinjau. Istilah di glosarium diperiksa otomatis — kalau ada yang ikut diterjemahkan, draftnya ditolak.",
     sourceEditedWarning:
       "Anda mengubah teks sumber artikel yang sudah terbit. Periksa apakah terjemahannya masih cocok.",
 
@@ -141,9 +137,13 @@ export const adminCopy = {
     previewTitle: "Pratinjau",
     previewShow: "Preview",
     previewHide: "Tutup preview",
+    previewTranslating: "Menerjemahkan…",
     previewHint:
-      "Tekan Preview untuk melihat hasil tulisan Anda dalam kedua bahasa, persis seperti yang akan tampil di situs. Kolom bahasa satunya juga ikut terbuka di sana, siap ditinjau dan disunting.",
+      "Tekan Preview untuk menerjemahkan tulisan Anda ke bahasa satunya secara otomatis, lalu melihat keduanya berdampingan persis seperti yang akan tampil di situs. Kolom bahasa satunya ikut terbuka di sana untuk Anda periksa dan perbaiki.",
     previewEmpty: "Belum ada isi untuk bahasa ini.",
+    retranslate: "Terjemahkan ulang",
+    retranslateHint:
+      "Menerjemahkan ulang dari bahasa sumber dan MENIMPA sisi terjemahan — termasuk perbaikan yang sudah Anda ketik di sana.",
     coverChosen: "Gambar yang baru dipilih",
   },
 

@@ -14,7 +14,7 @@ import {
 } from "@/lib/covers";
 import { RATE_LIMITS, consumeRateLimit } from "@/lib/rate-limit";
 import type { Locale } from "@/lib/i18n";
-import { translateArticle } from "@/lib/translate";
+import { translateArticle, type TranslateDeps } from "@/lib/translate";
 import type { Json, TablesUpdate } from "@/lib/supabase/database.types";
 import { validatePostForm, type PostFormInput } from "@/lib/validation";
 import { sanitizeDoc, docToPlainText, collectImagePaths, type Doc } from "@/lib/doc";
@@ -398,18 +398,75 @@ export async function deletePostPermanently(
  * constraint terbit menolak itu — pernyataannya akan gagal di tengah jalan.
  * Menariknya dari publik lebih dulu adalah urutan yang benar, bukan halangan.
  */
-export async function generateTranslationDraft(
-  _previous: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
+/**
+ * Dependensi terjemahan — glosarium, plafon bulanan, pencatatan pemakaian.
+ *
+ * Diangkat jadi satu tempat karena dipakai dua pemanggil. Sebelumnya ketiganya
+ * disalin di masing-masing, dan salinan seperti itu menyimpang diam-diam:
+ * plafon bulanan yang diperbaiki di satu sisi tapi tidak di sisi lain adalah
+ * penjagaan biaya yang bocor tanpa satu pun galat.
+ *
+ * `postId` boleh `null` — artikel yang belum tersimpan belum punya baris untuk
+ * dirujuk, tapi karakter yang dipakainya **tetap wajib tercatat**. Kalau tidak,
+ * plafon bulanan bisa dilewati begitu saja dengan menerjemahkan berulang kali
+ * dari layar artikel baru.
+ */
+function translationDeps(
+  guard: Extract<GuardResult, { ok: true }>,
+  postId: string | null,
+): TranslateDeps {
+  return {
+    async loadGlossary() {
+      const { data } = await guard.supabase
+        .from("translation_glossary")
+        .select("term, note")
+        .order("term");
+      return data ?? [];
+    },
+    async charactersUsedThisMonth() {
+      const { data } = await guard.supabase.rpc("translation_characters_this_month");
+      return typeof data === "number" ? data : 0;
+    },
+    async recordRun(row) {
+      await guard.supabase.from("translation_runs").insert({
+        post_id: postId,
+        direction: row.direction,
+        provider: row.provider,
+        model: row.model,
+        status: row.status,
+        billed_characters: row.billedCharacters,
+        error_note: row.errorNote,
+      });
+    },
+  };
+}
+
+export type FormTranslation =
+  | { ok: true; title: string; excerpt: string; coverAlt: string; doc: Doc }
+  | { ok: false; message: string };
+
+/**
+ * Menerjemahkan isi yang sedang ada di formulir, tanpa menyentuh tabel `posts`.
+ *
+ * Inilah yang membuat tombol Preview bisa mengisi sisi bahasa satunya di layar
+ * **artikel baru**. Jalur lama menuntut `postId` dan memuat isi dari database,
+ * jadi di layar itu ia tidak pernah bisa dipanggil — artikelnya belum ada.
+ *
+ * Yang dikembalikan hanya nilai; yang memindahkannya ke database tetap
+ * `saveArticle`. Pemisahan itu disengaja: menerjemahkan bukan menyimpan, dan
+ * menekan Preview tidak boleh diam-diam menulis apa pun.
+ *
+ * Seluruh penjagaan diwarisi dari `translateArticle()` apa adanya — plafon
+ * karakter bulanan, glosarium, batas panjang sumber, dan pemecahan batch
+ * 50-teks. Tidak ada satu pun yang ditulis ulang di sini.
+ */
+export async function translateFormContent(formData: FormData): Promise<FormTranslation> {
   const guard = await requireAdmin();
   if (!guard.ok) return { ok: false, message: TIDAK_BERWENANG };
 
-  const postId = String(formData.get("postId") ?? "").trim();
-  if (!postId) return { ok: false, message: "Artikel tidak ditemukan." };
-
-  // Pembatas biaya sebelum pembatas apa pun yang lain: setiap panggilan di
-  // balik titik ini berpotensi berbayar.
+  // Pembatas biaya sebelum pembatas apa pun yang lain. Tombol Preview jauh
+  // lebih mudah ditekan berulang daripada tombol di panel samping, jadi batas
+  // ini justru lebih penting sejak pemicunya berpindah ke sana.
   const withinLimit = await consumeRateLimit(
     `terjemah:${guard.userId}`,
     RATE_LIMITS.translate.limit,
@@ -419,98 +476,35 @@ export async function generateTranslationDraft(
     return { ok: false, message: "Terlalu banyak permintaan terjemahan. Coba lagi dalam satu jam." };
   }
 
-  const { data: post, error: loadError } = await guard.supabase
-    .from("posts")
-    .select(
-      "id, status, source_locale, translation_status, title_id, title_en, excerpt_id, excerpt_en, body_id, body_en, doc_id, doc_en, cover_alt_id, cover_alt_en",
-    )
-    .eq("id", postId)
-    .maybeSingle();
-
-  if (loadError) return { ok: false, message: describeDbError(loadError, "muat-terjemahan") };
-  if (!post) return { ok: false, message: "Artikel tidak ditemukan." };
-
-  if (post.status !== "draft") {
-    return {
-      ok: false,
-      message:
-        "Tarik artikel dari publik dulu. Draft terjemahan baru selalu berstatus belum ditinjau, dan artikel terbit tidak boleh berada dalam keadaan itu.",
-    };
-  }
-
-  const sourceLocale: Locale = post.source_locale === "en" ? "en" : "id";
+  const postId = String(formData.get("postId") ?? "").trim() || null;
+  const sourceLocale: Locale = String(formData.get("sourceLocale") ?? "id") === "en" ? "en" : "id";
   const targetLocale: Locale = sourceLocale === "id" ? "en" : "id";
+
+  const get = (name: string) => String(formData.get(name) ?? "");
+  const docs = readDocs(formData);
+  const sisi = sourceLocale === "id" ? "Id" : "En";
 
   const outcome = await translateArticle(
     {
-      postId,
+      postId: postId ?? "",
       sourceLocale,
       targetLocale,
-      title: (sourceLocale === "id" ? post.title_id : post.title_en) ?? "",
-      excerpt: (sourceLocale === "id" ? post.excerpt_id : post.excerpt_en) ?? "",
-      coverAlt: (sourceLocale === "id" ? post.cover_alt_id : post.cover_alt_en) ?? "",
-      doc: sanitizeDoc(sourceLocale === "id" ? post.doc_id : post.doc_en),
+      title: get(`title${sisi}`),
+      excerpt: get(`excerpt${sisi}`),
+      coverAlt: get(`coverAlt${sisi}`),
+      doc: sourceLocale === "id" ? docs.id : docs.en,
     },
-    {
-      async loadGlossary() {
-        const { data } = await guard.supabase
-          .from("translation_glossary")
-          .select("term, note")
-          .order("term");
-        return data ?? [];
-      },
-      async charactersUsedThisMonth() {
-        const { data } = await guard.supabase.rpc("translation_characters_this_month");
-        return typeof data === "number" ? data : 0;
-      },
-      async recordRun(row) {
-        await guard.supabase.from("translation_runs").insert({
-          post_id: row.postId,
-          direction: row.direction,
-          provider: row.provider,
-          model: row.model,
-          status: row.status,
-          billed_characters: row.billedCharacters,
-          error_note: row.errorNote,
-        });
-      },
-    },
+    translationDeps(guard, postId),
   );
 
   if (!outcome.ok) return { ok: false, message: outcome.message };
 
-  // Sisi terjemahan ditulis; sisi sumber tidak disentuh sama sekali.
-  // `translation_status` sengaja 'generated', bukan 'reviewed' — hanya
-  // Salsabilah yang boleh menaikkannya, dan gate terbit bergantung pada itu.
-  const patch =
-    targetLocale === "en"
-      ? {
-          title_en: outcome.draft.title,
-          excerpt_en: outcome.draft.excerpt,
-          // Dokumen DAN cerminnya ditulis bersamaan. Menulis salah satu saja
-          // membuat pencarian dan isi yang tampil berbicara tentang teks yang
-          // berbeda, tanpa satu pun galat.
-          doc_en: toJson(outcome.draft.doc),
-          body_en: outcome.draft.body,
-          cover_alt_en: outcome.draft.coverAlt,
-          translation_status: "generated",
-        }
-      : {
-          title_id: outcome.draft.title,
-          excerpt_id: outcome.draft.excerpt,
-          doc_id: toJson(outcome.draft.doc),
-          body_id: outcome.draft.body,
-          cover_alt_id: outcome.draft.coverAlt,
-          translation_status: "generated",
-        };
-
-  const { error } = await guard.supabase.from("posts").update(patch).eq("id", postId);
-  if (error) return { ok: false, message: describeDbError(error, "simpan-terjemahan") };
-
-  revalidatePath(`/admin/artikel/${postId}`);
   return {
     ok: true,
-    message: `Draft terjemahan dibuat oleh ${outcome.model}. Tinjau dan sunting sebelum menandainya sudah ditinjau.`,
+    title: outcome.draft.title,
+    excerpt: outcome.draft.excerpt,
+    coverAlt: outcome.draft.coverAlt,
+    doc: outcome.draft.doc,
   };
 }
 

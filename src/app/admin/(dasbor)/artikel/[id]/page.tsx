@@ -88,9 +88,6 @@ export default async function SuntingArtikelPage({
               // trigger di database sudah menurunkan status tinjauan sendiri
               // selama artikel masih draft (lihat migrasi 0005).
               showSourceEditedWarning={status === "published" || status === "scheduled"}
-              // Draft terjemahan menyetel translation_status ke 'generated',
-              // dan artikel terbit tidak boleh berada dalam keadaan itu.
-              canGenerate={status === "draft"}
             />
 
             <LifecyclePanel postId={post.id} slug={post.slug} status={status} />

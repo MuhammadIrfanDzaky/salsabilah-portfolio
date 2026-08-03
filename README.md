@@ -50,8 +50,8 @@ persis dengan halaman publik, jadi yang terlihat di sana adalah yang akan terbit
 
 ### Cover
 
-Setelah artikel tersimpan sekali, panel **Cover** muncul. Pilih gambar lalu tekan
-**Unggah cover**.
+Cover ada di bagian **Identitas**, paling atas. Pilih gambarnya kapan saja — termasuk
+sebelum artikel pernah disimpan; gambarnya ikut terunggah saat Anda menekan Simpan draf.
 
 - JPEG, PNG, WebP, atau AVIF. **SVG ditolak** karena bisa menyisipkan program.
 - Maksimal 5 MB, lebar minimal 600 piksel.
@@ -64,12 +64,18 @@ Setelah artikel tersimpan sekali, panel **Cover** muncul. Pilih gambar lalu teka
 
 Setiap artikel wajib lengkap dalam **kedua** bahasa sebelum bisa terbit. Alurnya:
 
-1. Tulis di bahasa sumber.
-2. Isi sisi terjemahannya.
-3. Baca ulang terjemahan itu, lalu tekan **Tandai terjemahan sudah ditinjau**.
+1. Tulis di bahasa sumber saja. Kolom bahasa satunya sengaja disembunyikan.
+2. Tekan **Preview**. Sisi terjemahannya **terisi sendiri** dan kedua bahasa tampil
+   berdampingan.
+3. Baca ulang terjemahan itu, perbaiki bila perlu, lalu tekan **Tandai terjemahan sudah
+   ditinjau**.
 
-Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang perlu diketahui:
+Yang perlu diketahui tentang tombol Preview:
 
+- **Menerjemahkan hanya bila sisi terjemahan masih kosong.** Kalau Anda sudah memperbaiki
+  hasilnya, menekan Preview lagi cuma menampilkan — perbaikan Anda tidak akan tertimpa.
+  Untuk sengaja menimpanya, ada tombol **Terjemahkan ulang** di dalam panel pratinjau.
+- Bekerja sejak artikel **belum disimpan sekali pun**. Tidak perlu menekan Simpan draf dulu.
 - Hasilnya **selalu draft**. Sistem tidak pernah menandainya sudah ditinjau — itu hanya bisa
   Anda lakukan, dan artikel tidak bisa terbit tanpanya.
 - **Format ikut terbawa utuh.** Tebal, miring, subjudul, daftar, tabel, dan gambar tetap di
@@ -83,8 +89,6 @@ Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang p
   (misalnya artikel pertama tentang lebah kelulut, yang istilahnya tidak ada di daftar awal
   berisi istilah ekonometrika), istilah barunya perlu dimasukkan lebih dulu. Tanpa itu
   pemeriksaannya diam saja — ia hanya menjaga istilah yang terdaftar.
-- Hanya tersedia untuk artikel berstatus **draf**. Untuk artikel yang sudah terbit, tarik dulu
-  dari publik.
 - Kalau mesinnya sedang bermasalah, pesannya menjelaskan apa yang terjadi dan menulis manual
   tetap bisa. Terjemahan otomatis tidak pernah menghalangi Anda bekerja.
 

@@ -61,7 +61,8 @@ export type TranslateInput = {
 };
 
 export type RunRecord = {
-  postId: string;
+  /** `null` untuk artikel yang belum tersimpan — pemakaiannya tetap wajib tercatat. */
+  postId: string | null;
   direction: "id-en" | "en-id";
   provider: string;
   model: string;

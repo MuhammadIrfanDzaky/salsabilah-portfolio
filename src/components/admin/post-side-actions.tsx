@@ -7,7 +7,6 @@ import { adminCopy } from "@/data/admin-copy";
 import {
   archivePost,
   deletePostPermanently,
-  generateTranslationDraft,
   markTranslationReviewed,
   restorePost,
   unpublish,
@@ -65,19 +64,13 @@ export function TranslationPanel({
   postId,
   translationStatus,
   showSourceEditedWarning,
-  canGenerate,
 }: {
   postId: string;
   translationStatus: string;
   showSourceEditedWarning: boolean;
-  canGenerate: boolean;
 }) {
   const [state, formAction] = useActionState<ActionResult | null, FormData>(
     markTranslationReviewed,
-    null,
-  );
-  const [draftState, draftAction] = useActionState<ActionResult | null, FormData>(
-    generateTranslationDraft,
     null,
   );
   const reviewed = translationStatus === "reviewed";
@@ -106,27 +99,20 @@ export function TranslationPanel({
           </form>
         ) : null}
 
-        {canGenerate ? (
-          <form action={draftAction}>
-            <input type="hidden" name="postId" value={postId} />
-            <Submit label={adminCopy.editor.generateDraft} busy={adminCopy.editor.generateDraftBusy} />
-          </form>
-        ) : (
-          <button
-            type="button"
-            disabled
-            title={adminCopy.editor.generateDraftBlocked}
-            className="inline-flex cursor-not-allowed items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] text-muted opacity-60"
-          >
-            {adminCopy.editor.generateDraft}
-          </button>
-        )}
       </div>
 
+      {/* Tombol "Buat draft terjemahan" DIHAPUS dari sini (2026-07-29).
+          Terjemahan kini dipicu tombol Preview di dalam formulir, supaya juga
+          bekerja di layar artikel baru — di mana panel ini tidak dirender sama
+          sekali karena artikelnya belum punya baris.
+
+          Membiarkan keduanya bukan sekadar mubazir: jalur lama menulis langsung
+          ke database sedangkan jalur baru mengisi formulir, jadi hasil yang
+          tersimpan bisa berbeda dari yang terlihat di layar tergantung tombol
+          mana yang ditekan. */}
       <p className="m-0 mt-2 text-[12.5px] leading-relaxed text-muted">
-        {canGenerate ? adminCopy.editor.generateDraftHint : adminCopy.editor.generateDraftBlocked}
+        {adminCopy.editor.translationHint}
       </p>
-      <Pesan state={draftState} />
       <Pesan state={state} />
     </section>
   );
