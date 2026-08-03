@@ -36,23 +36,16 @@ Authentication → Users → pilih akun → *Reset password*.
    (`/id/blog/slug-anda`). Boleh diubah selama artikel belum terbit.
 5. Tekan **Simpan draf**.
 
-Format tulisan sengaja sederhana, hanya tiga aturan:
+Menulisnya seperti di pengolah kata: ada tombol di atas kotak isi, tidak ada tanda
+baca yang perlu dihafal. Yang tersedia — **tebal, miring, garis bawah, coret,
+subskrip/superskrip, subjudul (dua tingkat), daftar berpoin dan bernomor, kutipan,
+tautan, garis pemisah, tabel**, serta urungkan/ulangi.
 
-| Yang Anda ketik | Hasilnya |
-|---|---|
-| baris kosong di antara paragraf | paragraf terpisah |
-| `## Judul bagian` di awal baris | subjudul |
-| `- ` di awal setiap baris satu blok | daftar berpoin |
-| `*kata*` | *miring* |
+Yang **tidak** ada, dan sengaja: pemilih jenis huruf, ukuran, dan warna. Ketiganya
+membuat tiap artikel tampil berbeda dan menabrak tipografi situs; keseragaman itu
+yang membuat blog terbaca sebagai satu tulisan, bukan kumpulan dokumen.
 
-Daftar: tulis `- ` di awal **setiap** baris dalam satu blok, tanpa baris kosong di
-antaranya. Kalau ada satu baris saja yang tidak berawalan `- `, seluruh blok tetap
-jadi paragraf biasa — itu disengaja, supaya paragraf yang kebetulan diawali tanda
-hubung tidak berubah bentuk sendiri.
-
-Selain itu tidak ada format lain. **Tabel dan gambar di tengah tulisan belum ada.**
-Untuk perbandingan, tulis sebagai paragraf; untuk gambar, situs ini menyediakan satu
-cover per artikel. Pratinjau di bawah formulir memakai komponen yang sama
+Pratinjau di bawah formulir memakai komponen yang sama
 persis dengan halaman publik, jadi yang terlihat di sana adalah yang akan terbit.
 
 ### Cover
@@ -79,6 +72,9 @@ Tombol **Buat draft terjemahan** mengisi sisi terjemahan secara otomatis. Yang p
 
 - Hasilnya **selalu draft**. Sistem tidak pernah menandainya sudah ditinjau — itu hanya bisa
   Anda lakukan, dan artikel tidak bisa terbit tanpanya.
+- **Format ikut terbawa utuh.** Tebal, miring, subjudul, daftar, tabel, dan gambar tetap di
+  tempatnya — yang diterjemahkan hanya teksnya. Keterangan gambar juga ikut: Anda menulis
+  yang bahasa Indonesia saat menyisipkan, sisi Inggrisnya diisi di sini.
 - Istilah di glosarium **diperiksa otomatis pada hasilnya**. Kalau ada istilah yang
   seharusnya utuh tapi ikut berubah, draftnya ditolak seluruhnya dan Anda diberi tahu
   istilah mana. Pada praktiknya penolakan ini jarang: nama ilmiah seperti *Heterotrigona

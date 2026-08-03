@@ -104,6 +104,19 @@ export function buildCoverPath(postSlug: string): string {
   return `${postSlug}/${crypto.randomUUID()}.webp`;
 }
 
+/**
+ * Path untuk gambar di dalam isi artikel.
+ *
+ * Sengaja **tidak** memakai slug seperti cover. Gambar isi disisipkan saat
+ * mengetik, dan pada artikel baru belum ada slug apa pun untuk dipakai —
+ * menunggu artikel tersimpan lebih dulu adalah persis friksi yang baru saja
+ * dihapus dari alur cover. Awalan `isi/` memisahkannya dari cover sehingga
+ * keduanya bisa dibedakan sekilas saat menelusuri bucket.
+ */
+export function buildBodyImagePath(): string {
+  return `isi/${crypto.randomUUID()}.webp`;
+}
+
 /** Public URL of a stored cover — the bucket is public, so no signing needed. */
 export function coverPublicUrl(supabaseUrl: string, coverPath: string): string {
   return `${supabaseUrl}/storage/v1/object/public/post-covers/${coverPath}`;

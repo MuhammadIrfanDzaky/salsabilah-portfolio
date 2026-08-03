@@ -121,6 +121,8 @@ export type Database = {
           cover_path: string | null;
           created_at: string;
           deleted_at: string | null;
+          doc_en: Json | null;
+          doc_id: Json | null;
           excerpt_en: string | null;
           excerpt_id: string | null;
           id: string;
@@ -145,6 +147,8 @@ export type Database = {
           cover_path?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          doc_en?: Json | null;
+          doc_id?: Json | null;
           excerpt_en?: string | null;
           excerpt_id?: string | null;
           id?: string;
@@ -167,6 +171,8 @@ export type Database = {
           cover_path?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          doc_en?: Json | null;
+          doc_id?: Json | null;
           excerpt_en?: string | null;
           excerpt_id?: string | null;
           id?: string;

@@ -44,6 +44,8 @@ export default async function ArtikelBaruPage() {
             excerpt_en: "",
             body_id: "",
             body_en: "",
+            doc_id: null,
+            doc_en: null,
             cover_alt_id: "",
             cover_alt_en: "",
           }}

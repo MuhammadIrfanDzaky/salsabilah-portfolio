@@ -24,6 +24,18 @@ export const MAX_SOURCE_CHARS = 24_000;
 export const REQUEST_TIMEOUT_MS = 90_000;
 
 /**
+ * Berapa potongan teks boleh dikirim dalam satu permintaan DeepL.
+ *
+ * Batas provider, bukan pilihan kami: `text` menerima maksimal 50 entri. Ini
+ * mulai menggigit sejak isi artikel jadi dokumen — satu artikel bisa punya
+ * ratusan node teks (tiap sel tabel, tiap butir daftar, tiap potongan
+ * bertanda tebal adalah node tersendiri), jadi pengiriman sekali jalan akan
+ * ditolak begitu artikelnya sedikit rumit. Adapter memecahnya jadi batch dan
+ * menyambung hasilnya kembali sesuai urutan.
+ */
+export const MAX_TEXTS_PER_REQUEST = 50;
+
+/**
  * Berapa kali percobaan ulang saat provider gagal karena sebab sementara.
  *
  * Sengaja satu, bukan "sampai berhasil": loop percobaan ulang yang tak dibatasi

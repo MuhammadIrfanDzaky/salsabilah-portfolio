@@ -5,12 +5,19 @@ import { redirect } from "next/navigation";
 import { describeDbError } from "@/lib/admin/errors";
 import { requireAdmin, type ActionResult, type GuardResult } from "@/lib/admin/guard";
 import { publishNowDate } from "@/lib/admin/publish";
-import { CoverError, MAX_COVER_BYTES, buildCoverPath, processCoverImage } from "@/lib/covers";
+import {
+  CoverError,
+  MAX_COVER_BYTES,
+  buildBodyImagePath,
+  buildCoverPath,
+  processCoverImage,
+} from "@/lib/covers";
 import { RATE_LIMITS, consumeRateLimit } from "@/lib/rate-limit";
 import type { Locale } from "@/lib/i18n";
 import { translateArticle } from "@/lib/translate";
-import type { TablesUpdate } from "@/lib/supabase/database.types";
+import type { Json, TablesUpdate } from "@/lib/supabase/database.types";
 import { validatePostForm, type PostFormInput } from "@/lib/validation";
+import { sanitizeDoc, docToPlainText, collectImagePaths, type Doc } from "@/lib/doc";
 
 /**
  * Seluruh mutasi artikel.
@@ -35,7 +42,35 @@ function revalidatePublic() {
   revalidatePath("/admin");
 }
 
-function readForm(formData: FormData): PostFormInput {
+/**
+ * Dokumen isi dari formulir, sudah dibersihkan.
+ *
+ * Dibersihkan DI SINI, di server, meski editor juga membersihkannya di
+ * peramban. Yang di peramban itu kenyamanan; yang menentukan adalah ini —
+ * `docId` datang sebagai string JSON di dalam FormData, dan apa pun bisa
+ * dikirim ke sebuah Server Action.
+ */
+function readDocs(formData: FormData): { id: Doc; en: Doc } {
+  return {
+    id: sanitizeDoc(String(formData.get("docId") ?? "")),
+    en: sanitizeDoc(String(formData.get("docEn") ?? "")),
+  };
+}
+
+/**
+ * Dokumen → nilai kolom jsonb.
+ *
+ * `Doc` memakai `Record<string, unknown>` untuk `attrs` supaya `sanitizeDoc()`
+ * bisa memeriksa isinya tanpa berasumsi; `Json` menuntut bentuk yang lebih
+ * sempit. Konversinya aman justru karena dokumennya baru saja dibersihkan —
+ * setelah `sanitizeDoc()`, satu-satunya nilai yang tersisa adalah string,
+ * angka, dan objek/array dari keduanya.
+ */
+function toJson(doc: Doc): Json {
+  return doc as unknown as Json;
+}
+
+function readForm(formData: FormData, docs: { id: Doc; en: Doc }): PostFormInput {
   const get = (name: string) => String(formData.get(name) ?? "");
   return {
     slug: get("slug"),
@@ -46,8 +81,11 @@ function readForm(formData: FormData): PostFormInput {
     titleEn: get("titleEn"),
     excerptId: get("excerptId"),
     excerptEn: get("excerptEn"),
-    bodyId: get("bodyId"),
-    bodyEn: get("bodyEn"),
+    // Cermin teks polos diturunkan dari dokumen, bukan dibaca dari formulir.
+    // Membacanya terpisah berarti keduanya bisa berbeda, dan pencarian akan
+    // menemukan kata yang sudah tidak ada di artikelnya.
+    bodyId: docToPlainText(docs.id),
+    bodyEn: docToPlainText(docs.en),
     coverAltId: get("coverAltId"),
     coverAltEn: get("coverAltEn"),
   };
@@ -93,8 +131,10 @@ export async function saveArticle(
   const coverFile = formData.get("cover");
   const coverBaru = coverFile instanceof File && coverFile.size > 0 ? coverFile : null;
 
+  const docs = readDocs(formData);
+
   const validCategoryIds = await loadCategories(guard);
-  const parsed = validatePostForm(readForm(formData), { validCategoryIds });
+  const parsed = validatePostForm(readForm(formData, docs), { validCategoryIds });
   if (!parsed.ok) {
     return { ok: false, message: "Ada isian yang belum benar.", fields: parsed.errors };
   }
@@ -123,7 +163,7 @@ export async function saveArticle(
   if (!postId) {
     const { data, error } = await guard.supabase
       .from("posts")
-      .insert({ ...value, status, published_at: publishedAt })
+      .insert({ ...value, doc_id: toJson(docs.id), doc_en: toJson(docs.en), status, published_at: publishedAt })
       .select("id")
       .single();
 
@@ -146,7 +186,7 @@ export async function saveArticle(
   // ------------------------------------------------------------- artikel ada
   const { data: existing, error: loadError } = await guard.supabase
     .from("posts")
-    .select("id, slug, status, published_at")
+    .select("id, slug, status, published_at, doc_id, doc_en")
     .eq("id", postId)
     .maybeSingle();
 
@@ -185,6 +225,8 @@ export async function saveArticle(
       excerpt_en: value.excerpt_en,
       body_id: value.body_id,
       body_en: value.body_en,
+      doc_id: toJson(docs.id),
+      doc_en: toJson(docs.en),
       cover_alt_id: value.cover_alt_id,
       cover_alt_en: value.cover_alt_en,
       status,
@@ -193,6 +235,15 @@ export async function saveArticle(
     .eq("id", postId);
 
   if (error) return { ok: false, message: describeDbError(error, "simpan-artikel") };
+
+  // Dijalankan setelah dokumen barunya tersimpan, bukan sebelum: kalau
+  // penyimpanan gagal di tengah jalan, gambar yang masih dipakai sudah
+  // terlanjur hilang.
+  await bersihkanGambarYatim(
+    guard,
+    [sanitizeDoc(existing.doc_id), sanitizeDoc(existing.doc_en)],
+    [docs.id, docs.en],
+  );
 
   if (coverBaru) {
     const hasil = await simpanCover(guard, postId, coverBaru);
@@ -296,7 +347,7 @@ export async function deletePostPermanently(
 
   const { data: post, error: loadError } = await guard.supabase
     .from("posts")
-    .select("slug, deleted_at, cover_path")
+    .select("slug, deleted_at, cover_path, doc_id, doc_en")
     .eq("id", postId)
     .maybeSingle();
 
@@ -320,6 +371,17 @@ export async function deletePostPermanently(
   // Berkas cover ikut dibersihkan hanya kalau ia memang ada di Storage. Cover
   // dummy menunjuk ke public/blog-covers/ dengan garis miring di depan dan
   // bukan objek Storage — memanggil remove() untuk itu hanya gagal diam-diam.
+  // Gambar di dalam isi ikut dibuang. Tanpa ini, menghapus artikel permanen
+  // menyisakan berkasnya di bucket selamanya — tidak terlihat dari mana pun,
+  // dan tidak ada lagi dokumen yang bisa dipakai menemukannya kembali.
+  const gambarIsi = [
+    ...collectImagePaths(sanitizeDoc(post.doc_id)),
+    ...collectImagePaths(sanitizeDoc(post.doc_en)),
+  ].filter((path) => path.startsWith("isi/"));
+  if (gambarIsi.length > 0) {
+    await guard.supabase.storage.from("post-covers").remove([...new Set(gambarIsi)]);
+  }
+
   if (post.cover_path && !post.cover_path.startsWith("/") && !post.cover_path.startsWith("http")) {
     await guard.supabase.storage.from("post-covers").remove([post.cover_path]);
   }
@@ -360,7 +422,7 @@ export async function generateTranslationDraft(
   const { data: post, error: loadError } = await guard.supabase
     .from("posts")
     .select(
-      "id, status, source_locale, translation_status, title_id, title_en, excerpt_id, excerpt_en, body_id, body_en, cover_alt_id, cover_alt_en",
+      "id, status, source_locale, translation_status, title_id, title_en, excerpt_id, excerpt_en, body_id, body_en, doc_id, doc_en, cover_alt_id, cover_alt_en",
     )
     .eq("id", postId)
     .maybeSingle();
@@ -386,8 +448,8 @@ export async function generateTranslationDraft(
       targetLocale,
       title: (sourceLocale === "id" ? post.title_id : post.title_en) ?? "",
       excerpt: (sourceLocale === "id" ? post.excerpt_id : post.excerpt_en) ?? "",
-      body: (sourceLocale === "id" ? post.body_id : post.body_en) ?? "",
       coverAlt: (sourceLocale === "id" ? post.cover_alt_id : post.cover_alt_en) ?? "",
+      doc: sanitizeDoc(sourceLocale === "id" ? post.doc_id : post.doc_en),
     },
     {
       async loadGlossary() {
@@ -425,6 +487,10 @@ export async function generateTranslationDraft(
       ? {
           title_en: outcome.draft.title,
           excerpt_en: outcome.draft.excerpt,
+          // Dokumen DAN cerminnya ditulis bersamaan. Menulis salah satu saja
+          // membuat pencarian dan isi yang tampil berbicara tentang teks yang
+          // berbeda, tanpa satu pun galat.
+          doc_en: toJson(outcome.draft.doc),
           body_en: outcome.draft.body,
           cover_alt_en: outcome.draft.coverAlt,
           translation_status: "generated",
@@ -432,6 +498,7 @@ export async function generateTranslationDraft(
       : {
           title_id: outcome.draft.title,
           excerpt_id: outcome.draft.excerpt,
+          doc_id: toJson(outcome.draft.doc),
           body_id: outcome.draft.body,
           cover_alt_id: outcome.draft.coverAlt,
           translation_status: "generated",
@@ -539,6 +606,94 @@ async function simpanCover(
   revalidatePublic();
   revalidatePath(`/admin/artikel/${postId}`);
   return { ok: true, message: "Cover diperbarui." };
+}
+
+export type ImageUploadResult = { ok: true; path: string } | { ok: false; message: string };
+
+/**
+ * Mengunggah satu gambar untuk disisipkan di tengah isi artikel.
+ *
+ * Berbeda dari cover, ini **tidak terikat pada baris artikel mana pun**.
+ * Gambar disisipkan saat mengetik, dan pada artikel baru belum ada baris untuk
+ * ditempeli — memaksa "simpan dulu" adalah friksi yang sama yang sudah dihapus
+ * dari alur cover. Konsekuensinya berkasnya bisa jadi yatim bila penulis
+ * mengunggah lalu batal menyimpan; itu dibersihkan dari sisi dokumen saat
+ * simpan berikutnya (lihat `bersihkanGambarYatim`).
+ *
+ * Pipeline gambarnya sama persis dengan cover: hanya raster sungguhan yang
+ * lolos, hasilnya re-encode ke WebP, dan EXIF — termasuk titik GPS — ikut
+ * terbuang. Catatan lapangan penuh foto ponsel, dan lokasi pengambilan bukan
+ * sesuatu yang diterbitkan tanpa sengaja.
+ */
+export async function uploadArticleImage(formData: FormData): Promise<ImageUploadResult> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return { ok: false, message: TIDAK_BERWENANG };
+
+  const withinLimit = await consumeRateLimit(
+    `unggah-cover:${guard.userId}`,
+    RATE_LIMITS.coverUpload.limit,
+    RATE_LIMITS.coverUpload.windowSeconds,
+  );
+  if (!withinLimit) {
+    return { ok: false, message: "Terlalu banyak unggahan. Coba lagi dalam satu jam." };
+  }
+
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Pilih berkas gambar dulu." };
+  }
+  if (file.size > MAX_COVER_BYTES) {
+    return { ok: false, message: PESAN_COVER["too-large"]! };
+  }
+
+  let processed;
+  try {
+    processed = await processCoverImage(await file.arrayBuffer());
+  } catch (err) {
+    if (err instanceof CoverError) {
+      return { ok: false, message: PESAN_COVER[err.reason] ?? "Gambar tidak bisa diproses." };
+    }
+    console.error("[unggah-gambar-isi] gagal diproses:", err);
+    return { ok: false, message: "Gambar tidak bisa diproses." };
+  }
+
+  const path = buildBodyImagePath();
+  const { error } = await guard.supabase.storage
+    .from("post-covers")
+    .upload(path, processed.data, { contentType: processed.contentType, upsert: false });
+
+  if (error) {
+    console.error("[unggah-gambar-isi] storage:", error.message);
+    return { ok: false, message: "Gagal mengunggah ke penyimpanan." };
+  }
+
+  return { ok: true, path };
+}
+
+/**
+ * Membuang berkas gambar yang tidak lagi dirujuk dokumen mana pun.
+ *
+ * Dipanggil setelah dokumen baru tersimpan, bukan sebelum: kalau penyimpanan
+ * gagal di tengah jalan, gambar yang masih dipakai sudah terlanjur hilang.
+ * Hanya path berawalan `isi/` yang disentuh — cover punya siklus hidupnya
+ * sendiri, dan menghapusnya dari sini akan mengosongkan gambar utama artikel
+ * tanpa ada yang memintanya.
+ */
+async function bersihkanGambarYatim(
+  guard: Extract<GuardResult, { ok: true }>,
+  sebelum: Doc[],
+  sesudah: Doc[],
+): Promise<void> {
+  const lama = new Set(sebelum.flatMap(collectImagePaths));
+  const baru = new Set(sesudah.flatMap(collectImagePaths));
+
+  const yatim = [...lama].filter((path) => !baru.has(path) && path.startsWith("isi/"));
+  if (yatim.length === 0) return;
+
+  const { error } = await guard.supabase.storage.from("post-covers").remove(yatim);
+  // Kegagalan di sini tidak boleh menggagalkan penyimpanan artikel: yang
+  // tertinggal cuma berkas tak terpakai, sedangkan tulisannya sudah aman.
+  if (error) console.error("[gambar-yatim] gagal dibuang:", error.message);
 }
 
 /*

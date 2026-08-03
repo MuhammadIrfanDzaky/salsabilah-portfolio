@@ -95,7 +95,7 @@ export const adminCopy = {
     fieldCoverAlt: "Teks alternatif cover",
 
     bodyHint:
-      "Baris kosong memisahkan paragraf. Awali baris dengan \"## \" untuk subjudul. Apit dengan tanda bintang untuk *miring*. Selain itu tidak ada format lain.",
+      "Pakai tombol di atas kotak ini untuk menebalkan, memiringkan, membuat subjudul, daftar, kutipan, tautan, dan tabel — seperti di pengolah kata. Tidak ada tanda baca yang perlu dihafal.",
 
     publishedAt: "Tanggal & jam terbit (WIB)",
     publishedAtHint: "Disimpan dalam UTC, ditampilkan dalam WIB. Jam di masa depan berarti terjadwal.",

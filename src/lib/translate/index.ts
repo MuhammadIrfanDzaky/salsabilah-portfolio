@@ -4,6 +4,7 @@ import type { Locale } from "@/lib/i18n";
 import { LIMITS, cleanText } from "@/lib/validation";
 import { MAX_SOURCE_CHARS, readTranslationConfig } from "./config";
 import { missingTerms, type GlossaryTerm } from "./glossary";
+import { applyTexts, collectTexts, docToPlainText, type Doc } from "@/lib/doc";
 import { createDeeplProvider } from "./provider";
 
 /**
@@ -42,8 +43,11 @@ export type RunStatus =
 export type TranslationDraft = {
   title: string;
   excerpt: string;
-  body: string;
   coverAlt: string;
+  /** Dokumen hasil terjemahan, struktur identik dengan sumbernya. */
+  doc: Doc;
+  /** Cermin teks polos dari `doc` — untuk kolom `body_*` dan pencarian. */
+  body: string;
 };
 
 export type TranslateInput = {
@@ -52,8 +56,8 @@ export type TranslateInput = {
   targetLocale: Locale;
   title: string;
   excerpt: string;
-  body: string;
   coverAlt: string;
+  doc: Doc;
 };
 
 export type RunRecord = {
@@ -109,23 +113,37 @@ export type ShapeResult =
  * itulah bentuk yang dikirim ke DeepL. Urutannya sudah dijamin panjangnya oleh
  * adapter; di sini yang diperiksa isinya.
  */
-export function validateShape(values: readonly string[]): ShapeResult {
-  if (values.length !== 4) return { ok: false, note: "Jumlah kolom keluaran tidak sesuai." };
+export function validateShape(values: readonly string[], sourceDoc: Doc): ShapeResult {
+  if (values.length < 3) return { ok: false, note: "Jumlah kolom keluaran tidak sesuai." };
 
-  const [title, excerpt, body, coverAlt] = values.map((value) => cleanText(value));
+  const [title, excerpt, coverAlt] = values.slice(0, 3).map((value) => cleanText(value));
 
-  if (title.length === 0) return { ok: false, note: "Judul terjemahan kosong." };
+  /*
+   * Dokumen disusun ulang dari potongan teks, per indeks.
+   *
+   * `applyTexts()` menolak bila jumlahnya tidak cocok, dan penolakan itu yang
+   * paling penting di seluruh fungsi ini: memasang sebagian akan menghasilkan
+   * artikel yang separuh berbahasa Inggris dan separuh Indonesia, dengan
+   * struktur yang tetap utuh — kerusakan yang tampak sepenuhnya sah sampai ada
+   * yang benar-benar membacanya.
+   */
+  const doc = applyTexts(sourceDoc, values.slice(3));
+  if (!doc) return { ok: false, note: "Jumlah potongan teks tidak cocok dengan dokumennya." };
+
+  const body = docToPlainText(doc);
+
+  if (title!.length === 0) return { ok: false, note: "Judul terjemahan kosong." };
   if (body.length === 0) return { ok: false, note: "Isi terjemahan kosong." };
-  if (title.length > LIMITS.title) return { ok: false, note: "Judul terjemahan melebihi batas." };
-  if (excerpt.length > LIMITS.excerpt) {
+  if (title!.length > LIMITS.title) return { ok: false, note: "Judul terjemahan melebihi batas." };
+  if (excerpt!.length > LIMITS.excerpt) {
     return { ok: false, note: "Ringkasan terjemahan melebihi batas." };
   }
   if (body.length > LIMITS.body) return { ok: false, note: "Isi terjemahan melebihi batas." };
-  if (coverAlt.length > LIMITS.coverAlt) {
+  if (coverAlt!.length > LIMITS.coverAlt) {
     return { ok: false, note: "Alt cover terjemahan melebihi batas." };
   }
 
-  return { ok: true, draft: { title, excerpt, body, coverAlt } };
+  return { ok: true, draft: { title: title!, excerpt: excerpt!, coverAlt: coverAlt!, doc, body } };
 }
 
 // -------------------------------------------------------------- orkestrasi
@@ -145,8 +163,18 @@ export async function translateArticle(
   const config = configured.config;
   const direction: RunRecord["direction"] = input.sourceLocale === "id" ? "id-en" : "en-id";
 
-  const kolom = [input.title, input.excerpt, input.body, input.coverAlt];
-  const sumber = kolom.join("\n");
+  /*
+   * Tiga kolom pendek dulu, lalu seluruh potongan teks dokumen.
+   *
+   * Strukturnya TIDAK ikut dikirim — yang bepergian hanya teksnya, dan
+   * dokumennya disusun ulang di sini dari urutan yang sama. Itu sebabnya
+   * pelajaran `tag_handling` (lihat `provider.ts`) tidak berlaku lagi: tidak
+   * ada markup apa pun yang bisa dirusak provider, karena tidak ada markup
+   * yang dikirimkan.
+   */
+  const kepala = [input.title, input.excerpt, input.coverAlt];
+  const kolom = [...kepala, ...collectTexts(input.doc)];
+  const sumber = [...kepala, docToPlainText(input.doc)].join("\n");
 
   // Dijaga sebelum satu karakter pun ditagihkan. Sejak pindah ke DeepL angka
   // ini bukan lagi proksi untuk token — ia satuan yang sama dengan tagihannya.
@@ -219,7 +247,7 @@ export async function translateArticle(
     return { ok: false, status: "gagal-provider", message: pesan };
   }
 
-  const bentuk = validateShape(hasil.texts);
+  const bentuk = validateShape(hasil.texts, input.doc);
   if (!bentuk.ok) {
     await deps.recordRun({
       postId: input.postId,

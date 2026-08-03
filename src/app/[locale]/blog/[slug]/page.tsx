@@ -5,6 +5,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PostBody } from "@/components/blog/post-body";
+import { PostDoc } from "@/components/blog/post-doc";
+import { sanitizeDoc } from "@/lib/doc";
 import { ArticleEngagement } from "@/components/blog/article-engagement";
 import { CommentsSection } from "@/components/blog/comments-section";
 import { profile, ui } from "@/data/profile";
@@ -119,6 +121,7 @@ export default async function BlogPostPage({
 
   const title = localized(post, "title", locale);
   const body = localized(post, "body", locale);
+  const doc = sanitizeDoc(locale === "en" ? post.doc_en : post.doc_id);
   const cover = coverUrl(post.cover_path);
   const other = otherLocale(locale);
 
@@ -200,7 +203,15 @@ export default async function BlogPostPage({
                 </figure>
               )}
 
-              <PostBody body={body} />
+              {/* Dokumen adalah sumber kebenaran; `body` hanya cerminnya.
+                  Cadangan teks polos dipertahankan supaya artikel tetap
+                  terbaca seandainya dokumennya kosong karena sebab apa pun —
+                  isi yang hilang jauh lebih buruk daripada isi tanpa format. */}
+              {doc.content.length > 0 ? (
+                <PostDoc doc={doc} locale={locale} />
+              ) : (
+                <PostBody body={body} />
+              )}
 
               <hr className="my-10 border-0 border-t border-line" />
 

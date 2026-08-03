@@ -2,11 +2,14 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { PostBody } from "@/components/blog/post-body";
+import { PostDoc } from "@/components/blog/post-doc";
+import { RichEditor } from "@/components/admin/rich-editor";
+import { sanitizeDoc, docToPlainText, type Doc } from "@/lib/doc";
 import { Field, inputClasses } from "@/components/admin/field";
 import { adminCopy } from "@/data/admin-copy";
 import { saveArticle } from "@/app/admin/(dasbor)/artikel/actions";
 import type { ActionResult } from "@/lib/admin/guard";
+import type { Locale } from "@/lib/i18n";
 import { slugify } from "@/lib/slug";
 import { utcIsoToWibInput } from "@/lib/time";
 import { LIMITS, publishBlockers } from "@/lib/validation";
@@ -29,6 +32,8 @@ export type EditablePost = {
   excerpt_en: string | null;
   body_id: string | null;
   body_en: string | null;
+  doc_id: unknown;
+  doc_en: unknown;
   cover_alt_id: string | null;
   cover_alt_en: string | null;
 };
@@ -65,30 +70,33 @@ function ActionButton({
 function PreviewPane({
   legend,
   title,
-  body,
+  doc,
+  locale,
   empty,
 }: {
   legend: string;
   title: string;
-  body: string;
+  doc: Doc;
+  locale: Locale;
   empty: string;
 }) {
+  const kosong = !title.trim() && doc.content.length === 0;
   return (
     <div>
       <p className="m-0 mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
         {legend}
       </p>
-      {title.trim() || body.trim() ? (
+      {kosong ? (
+        <p className="m-0 text-[14px] text-muted">{empty}</p>
+      ) : (
         <>
           {title.trim() ? (
             <h3 className="m-0 mb-4 font-serif text-[24px] font-semibold leading-[1.2] text-ink">
               {title}
             </h3>
           ) : null}
-          <PostBody body={body} />
+          <PostDoc doc={doc} locale={locale} />
         </>
-      ) : (
-        <p className="m-0 text-[14px] text-muted">{empty}</p>
       )}
     </div>
   );
@@ -120,8 +128,18 @@ export function PostForm({
   const [slug, setSlug] = useState(post.slug);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [bodyId, setBodyId] = useState(post.body_id ?? "");
-  const [bodyEn, setBodyEn] = useState(post.body_en ?? "");
+  // Dokumen awal dihitung SEKALI. `initialDoc` hanya dibaca saat editor lahir;
+  // memberinya nilai baru tiap render tidak berbahaya, tapi menyesatkan pembaca
+  // kode berikutnya yang mengira isinya ikut tersinkron.
+  const [docIdAwal] = useState<Doc>(() => sanitizeDoc(post.doc_id));
+  const [docEnAwal] = useState<Doc>(() => sanitizeDoc(post.doc_en));
+  const [docId, setDocId] = useState<Doc>(docIdAwal);
+  const [docEn, setDocEn] = useState<Doc>(docEnAwal);
+
+  // Cermin teks polos, dipakai cermin "Syarat terbit" dan pratinjau kosong.
+  // Diturunkan, bukan disimpan terpisah — satu sumber kebenaran.
+  const bodyId = docToPlainText(docId);
+  const bodyEn = docToPlainText(docEn);
   const [titleId, setTitleId] = useState(post.title_id ?? "");
   const [titleEn, setTitleEn] = useState(post.title_en ?? "");
   const [publishedAt, setPublishedAt] = useState(utcIsoToWibInput(post.published_at));
@@ -355,16 +373,7 @@ export function PostForm({
               hint={adminCopy.editor.bodyHint}
               error={fields.bodyId}
             >
-              {(props) => (
-                <textarea
-                  {...props}
-                  name="bodyId"
-                  rows={16}
-                  value={bodyId}
-                  onChange={(e) => setBodyId(e.target.value)}
-                  className={`${inputClasses} min-h-[280px] resize-y font-mono text-[14px] leading-relaxed`}
-                />
-              )}
+              {() => <RichEditor name="docId" initialDoc={docIdAwal} onChange={setDocId} />}
             </Field>
 
             <Field id="coverAltId" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltId}>
@@ -423,16 +432,7 @@ export function PostForm({
               hint={adminCopy.editor.bodyHint}
               error={fields.bodyEn}
             >
-              {(props) => (
-                <textarea
-                  {...props}
-                  name="bodyEn"
-                  rows={16}
-                  value={bodyEn}
-                  onChange={(e) => setBodyEn(e.target.value)}
-                  className={`${inputClasses} min-h-[280px] resize-y font-mono text-[14px] leading-relaxed`}
-                />
-              )}
+              {() => <RichEditor name="docEn" initialDoc={docEnAwal} onChange={setDocEn} />}
             </Field>
 
             <Field id="coverAltEn" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltEn}>
@@ -477,13 +477,15 @@ export function PostForm({
             <PreviewPane
               legend={adminCopy.editor.groupId}
               title={titleId}
-              body={bodyId}
+              doc={docId}
+              locale="id"
               empty={adminCopy.editor.previewEmpty}
             />
             <PreviewPane
               legend={adminCopy.editor.groupEn}
               title={titleEn}
-              body={bodyEn}
+              doc={docEn}
+              locale="en"
               empty={adminCopy.editor.previewEmpty}
             />
           </div>

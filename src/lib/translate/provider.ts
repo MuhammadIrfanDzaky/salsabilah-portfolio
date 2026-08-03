@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   MAX_RETRIES,
+  MAX_TEXTS_PER_REQUEST,
   REQUEST_TIMEOUT_MS,
   type TranslationConfig,
 } from "./config";
@@ -68,26 +69,69 @@ export function createDeeplProvider(config: TranslationConfig): TranslationProvi
     name: "deepl",
 
     async send(request) {
-      let lastFailure: ProviderFailure = {
-        ok: false,
-        kind: "sementara",
-        note: "Tidak ada percobaan yang terjadi.",
-      };
-
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const result = await callOnce(config, request);
-        if (result.ok) return result;
-
-        lastFailure = result;
-        // Hanya kegagalan sementara yang layak diulang. Kunci ditolak, kuota
-        // habis, atau permintaan ditolak tidak akan membaik dengan dicoba lagi —
-        // ia hanya menggandakan karakter yang ditagihkan.
-        if (result.kind !== "sementara") return result;
+      /*
+       * Dipecah jadi batch karena DeepL menerima maksimal 50 teks per
+       * permintaan. Hasilnya disambung menurut urutan batch, dan urutan itulah
+       * satu-satunya yang memetakan terjemahan kembali ke node dokumennya —
+       * jadi batch dijalankan **berurutan**, bukan paralel. Menjalankannya
+       * paralel akan lebih cepat dan sesekali menukar isi paragraf, kerusakan
+       * yang tampak sah sampai ada yang membacanya.
+       */
+      const potongan: string[][] = [];
+      for (let i = 0; i < request.texts.length; i += MAX_TEXTS_PER_REQUEST) {
+        potongan.push(request.texts.slice(i, i + MAX_TEXTS_PER_REQUEST));
+      }
+      // Dokumen kosong tetap harus memanggil provider sekali: pemanggilnya
+      // menunggu jumlah keluaran yang sama dengan masukan, dan nol sama dengan
+      // nol hanya kalau tidak ada yang dikirim.
+      if (potongan.length === 0) {
+        return { ok: true, texts: [], billedCharacters: 0, modelUsed: config.modelType ?? "default" };
       }
 
-      return lastFailure;
+      const semua: string[] = [];
+      let ditagih = 0;
+      let model = config.modelType ?? "default";
+
+      for (const batch of potongan) {
+        const hasil = await kirimSatuBatch(config, { ...request, texts: batch });
+        // Satu batch gagal berarti seluruh dokumen gagal. Menyimpan sebagian
+        // akan menghasilkan artikel yang separuh diterjemahkan tanpa satu pun
+        // penanda bahwa sisanya belum.
+        if (!hasil.ok) return hasil;
+
+        semua.push(...hasil.texts);
+        ditagih += hasil.billedCharacters;
+        model = hasil.modelUsed;
+      }
+
+      return { ok: true, texts: semua, billedCharacters: ditagih, modelUsed: model };
     },
   };
+}
+
+/** Satu batch, dengan percobaan ulang sesuai aturan `MAX_RETRIES`. */
+async function kirimSatuBatch(
+  config: TranslationConfig,
+  request: ProviderRequest,
+): Promise<ProviderResult> {
+  let lastFailure: ProviderFailure = {
+    ok: false,
+    kind: "sementara",
+    note: "Tidak ada percobaan yang terjadi.",
+  };
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const result = await callOnce(config, request);
+    if (result.ok) return result;
+
+    lastFailure = result;
+    // Hanya kegagalan sementara yang layak diulang. Kunci ditolak, kuota habis,
+    // atau permintaan ditolak tidak akan membaik dengan dicoba lagi — ia hanya
+    // menggandakan karakter yang ditagihkan.
+    if (result.kind !== "sementara") return result;
+  }
+
+  return lastFailure;
 }
 
 async function callOnce(
