@@ -15,8 +15,11 @@ ada, kode `digest` yang ikut tampil di halaman galat.
 Label di bawah dikutip persis dari `src/data/admin-copy.ts`, jadi kalau tulisan di layar berbeda,
 itu sendiri sudah temuan.
 
-Jalankan di **produksi** (`https://salsabilah.vercel.app/admin`), bukan lokal — yang perlu
-dibuktikan adalah lingkungan yang sungguhan dipakai.
+Jalankan di **produksi** (`https://salsabilah.vercel.app/admin`) — yang perlu dibuktikan adalah
+lingkungan yang sungguhan dipakai.
+
+**Kecuali Sesi 2.** Terjemahan otomatis butuh `DEEPL_API_KEY`, yang belum ada di Vercel; sesi
+itu dijalankan di lokal (`npm run dev`) sampai kuncinya terpasang.
 
 ---
 
@@ -27,26 +30,32 @@ dibuktikan adalah lingkungan yang sungguhan dipakai.
 | 1.1 | Buka `/admin` tanpa login (mode incognito) | Dialihkan ke `/admin/masuk?lanjut=…` | |
 | 1.2 | Masuk dengan kredensial yang benar | Mendarat di daftar artikel, kosong, dengan empty state "belum ada artikel" | |
 | 1.3 | **Tulis artikel** → pilih Bahasa sumber **Indonesia** → isi Judul dan Isi → perhatikan kolom **Slug** | Slug terisi sendiri dari judul, huruf kecil bertanda hubung | |
-| 1.4 | Tekan **Simpan draf** | Muncul "Tersimpan." Artikel ada di tab **Draf**. **Ini jalur `saveArticle` untuk baris baru — belum pernah dijalankan lewat UI** | |
-| 1.5 | Perhatikan panel **Cover** | Sebelum langkah 1.4 tertulis "Simpan artikel dulu sebelum mengunggah cover."; sesudahnya panel unggah muncul | |
-| 1.6 | **Pilih gambar** → foto asli dari HP (JPEG, >600px, <5MB) → **Unggah cover** | Tombol jadi "Mengunggah…", lalu cover tampil. **Jalur `File → Server Action → Storage → cover_path` belum pernah diuji utuh** | |
-| 1.7 | Coba unggah file `.svg` | Ditolak — SVG memang dilarang karena bisa memuat script | |
-| 1.8 | Coba unggah gambar berlebar < 600px | Ditolak dengan alasan ukuran terlalu kecil | |
-| 1.9 | Tanpa mengisi sisi Inggris, tekan **Terbitkan sekarang** | **"Belum semua syarat terbit terpenuhi. Periksa daftar di atas tombol terbit."** Constraint `23514` sudah terbukti menolak di database; yang diuji di sini pemetaannya jadi kalimat Indonesia | |
-| 1.10 | Periksa daftar **Syarat terbit** | Tujuh baris; yang belum beres bertanda × — judul EN, isi EN, dan terjemahan ditinjau | |
+| 1.4 | Perhatikan toolbar di kotak **Isi**, coba tebal/miring/subjudul/daftar | Teks berubah bentuk tanpa satu pun tanda baca yang perlu diketik | |
+| 1.5 | Sisipkan **tabel** (▦), lalu tambah baris dan kolom | Tabel muncul dengan baris judul; +baris/+kolom bekerja | |
+| 1.6 | Sisipkan **gambar** (🖼) di tengah tulisan | Setelah memilih berkas, muncul pertanyaan keterangan gambar, lalu gambarnya tampil di dalam isi. Jalur unggah baru — belum pernah diuji lewat UI | |
+| 1.7 | **Pilih gambar** cover di bagian Identitas — lakukan **sebelum** menyimpan | Pratinjaunya langsung tampil. Cover tidak lagi menunggu artikel tersimpan (berubah 2026-07-29) | |
+| 1.8 | Tekan **Simpan draf** | Muncul "Tersimpan." Artikel ada di tab **Draf**, dan covernya ikut terunggah. **Dua jalur sekaligus yang belum pernah diuji lewat UI: `saveArticle` untuk baris baru, dan `File → Server Action → Storage → cover_path`** | |
+| 1.9 | Coba unggah file `.svg` | Ditolak — SVG memang dilarang karena bisa memuat script | |
+| 1.10 | Coba unggah gambar berlebar < 600px | Ditolak dengan alasan ukuran terlalu kecil | |
+| 1.11 | Tanpa mengisi sisi Inggris, tekan **Terbitkan sekarang** | **"Belum semua syarat terbit terpenuhi. Periksa daftar di atas tombol terbit."** Constraint `23514` sudah terbukti menolak di database; yang diuji di sini pemetaannya jadi kalimat Indonesia | |
+| 1.12 | Periksa daftar **Syarat terbit** | Tujuh baris; yang belum beres bertanda × — judul EN, isi EN, dan terjemahan ditinjau | |
 
 ## Sesi 2 — Terjemahan otomatis
 
-Baru mungkin setelah `OPENROUTER_API_KEY` **dan** `OPENROUTER_MODEL` ada di Vercel. Keduanya
-wajib: tanpa `OPENROUTER_MODEL` fiturnya tetap tidur karena tidak ada model bawaan di kode.
+Baru mungkin setelah `DEEPL_API_KEY` ada di Vercel — atau **jalankan sesi ini di lokal**
+(`npm run dev`), di mana kuncinya sudah terisi di `.env.local`.
+
+**Alurnya berubah 2026-07-29.** Tombol "Buat draft terjemahan" sudah tidak ada; yang
+menerjemahkan sekarang tombol **Preview** di dalam formulir.
 
 | # | Langkah | Yang diharapkan | Hasil |
 |---|---|---|---|
-| 2.1 | Pada draf dari Sesi 1, tekan **Buat draft terjemahan** | Sisi Inggris terisi. Statusnya tetap "Terjemahan belum ditinjau." — **sistem tidak pernah menandainya sendiri** | |
-| 2.2 | Baca hasilnya | Terjemahan wajar, dan istilah glosarium **tidak** ikut diterjemahkan | |
-| 2.3 | Coba pada artikel yang sudah **terbit** | Ditolak dengan penjelasan urutan benar: tarik dulu dari publik | |
-| 2.4 | Tulis draf yang **panjang** (mendekati batas 24.000 karakter), lalu buat draft terjemahan | Berhasil, **atau** pesan bahwa jawaban model terpotong karena batas panjang habis. Yang tidak boleh terjadi: terjemahan tersimpan dalam keadaan terputus di tengah kalimat. Kalau Anda melihat hasil yang berhenti mendadak, **itu temuan penting — laporkan** | |
-| 2.5 | Setelah beberapa percobaan, periksa pemakaian di OpenRouter | Biaya tetap 0 pada model gratis | |
+| 2.1 | Pada artikel **baru** (belum disimpan sama sekali), isi judul dan isi bahasa Indonesia, lalu tekan **Preview** | Sisi Inggris **terisi sendiri**, kedua bahasa tampil berdampingan. Statusnya tetap "Terjemahan belum ditinjau." — sistem tidak pernah menandainya sendiri | |
+| 2.2 | Baca hasilnya | Terjemahan wajar, istilah glosarium tidak ikut diterjemahkan, dan **format ikut terbawa** — tebal, subjudul, daftar, tabel tetap di tempatnya | |
+| 2.3 | Tekan **Preview** lagi (tutup, lalu buka) | **Tidak** menerjemahkan ulang. Sisi Inggris yang sudah ada dibiarkan apa adanya | |
+| 2.3b | Sunting satu kalimat di sisi Inggris, lalu tekan **Terjemahkan ulang** | Suntingan tertimpa hasil terjemahan baru. Inilah satu-satunya tombol yang boleh menimpa | |
+| 2.4 | Tulis artikel **panjang** dengan tabel dan beberapa daftar, lalu Preview | Berhasil dan strukturnya utuh. Isi yang panjang dipecah jadi beberapa permintaan di balik layar (batas 50 potongan teks per permintaan) — kalau urutannya kacau, teksnya akan tertukar antar paragraf. **Kalau Anda melihat kalimat mendarat di tempat yang salah, itu temuan penting — laporkan** | |
+| 2.5 | Setelah beberapa percobaan, periksa pemakaian di dasbor DeepL | Masih jauh di bawah 1.000.000 karakter/bulan paket Free | |
 
 ## Sesi 3 — Terbit, slug, dan siklus hidup
 
