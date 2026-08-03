@@ -191,7 +191,6 @@ export function publishBlockers(post: {
   body_id: string | null;
   body_en: string | null;
   cover_path: string | null;
-  published_at: string | null;
   translation_status: string;
 }): string[] {
   const kurang: string[] = [];
@@ -200,7 +199,6 @@ export function publishBlockers(post: {
   if (!post.body_id?.trim()) kurang.push("Isi (ID)");
   if (!post.body_en?.trim()) kurang.push("Isi (EN)");
   if (!post.cover_path?.trim()) kurang.push("Cover");
-  if (!post.published_at) kurang.push("Tanggal terbit");
   if (post.translation_status !== "reviewed") kurang.push("Terjemahan ditinjau");
   return kurang;
 }

@@ -170,3 +170,169 @@ button {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- editor isi
+ *
+ * Isi editor TipTap dirender sebagai HTML biasa di dalam `.ProseMirror`, dan
+ * preflight Tailwind menormalkan h2, strong, ul, blockquote, dan tabel jadi
+ * teks polos. Tanpa aturan di bawah ini marknya tetap terpasang di dokumen
+ * tapi **tidak terlihat sama sekali** saat mengetik — menekan "Tebal" tidak
+ * mengubah apa pun di layar, dan editor ala pengolah kata kehilangan seluruh
+ * gunanya.
+ *
+ * Nilainya sengaja dibuat menyerupai `post-doc.tsx` supaya yang terlihat saat
+ * menulis mendekati yang akan terbit.
+ */
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror > * + * {
+  margin-top: 1.1em;
+}
+
+.ProseMirror p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.ProseMirror h2,
+.ProseMirror h3 {
+  margin: 0;
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ProseMirror h2 {
+  font-size: 26px;
+}
+
+.ProseMirror h3 {
+  font-size: 21px;
+}
+
+.ProseMirror strong {
+  font-weight: 700;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror u {
+  text-decoration: underline;
+}
+
+.ProseMirror s {
+  text-decoration: line-through;
+}
+
+.ProseMirror sub,
+.ProseMirror sup {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.ProseMirror sub {
+  vertical-align: sub;
+}
+
+.ProseMirror sup {
+  vertical-align: super;
+}
+
+.ProseMirror a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 0;
+  padding-left: 1.6em;
+}
+
+.ProseMirror ul {
+  list-style: disc;
+}
+
+.ProseMirror ol {
+  list-style: decimal;
+}
+
+.ProseMirror li {
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.ProseMirror li > p {
+  margin: 0;
+}
+
+.ProseMirror li + li {
+  margin-top: 0.35em;
+}
+
+.ProseMirror blockquote {
+  margin: 0;
+  border-left: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  padding-left: 1.1em;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.ProseMirror hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.ProseMirror img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+/* Gambar yang sedang terpilih perlu penanda — tanpa ini tidak ada cara tahu
+   bahwa menekan Backspace akan menghapusnya. */
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  /* Tabel lebar tidak boleh menggeser seluruh formulir. */
+  overflow: hidden;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  padding: 0.5em 0.7em;
+  vertical-align: top;
+}
+
+.ProseMirror th {
+  font-weight: 600;
+  text-align: left;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  pointer-events: none;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  position: relative;
+}

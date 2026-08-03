@@ -163,6 +163,10 @@ export function PostForm({
   const [galatTerjemah, setGalatTerjemah] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState(utcIsoToWibInput(post.published_at));
 
+  // Terbuka sendiri bila artikelnya memang punya tanggal terbit — menyembunyikan
+  // nilai yang sudah tersimpan membuat orang mengira jadwalnya hilang.
+  const [showSchedule, setShowSchedule] = useState(Boolean(post.published_at));
+
   const kurang = publishBlockers({
     title_id: titleId,
     title_en: titleEn,
@@ -172,7 +176,6 @@ export function PostForm({
     // menuduh "cover belum ada" padahal gambarnya sudah terpasang di formulir
     // dan akan terunggah pada simpan berikutnya.
     cover_path: post.cover_path ?? (coverFile ? "dipilih" : null),
-    published_at: publishedAt ? "ada" : null,
     translation_status: post.translation_status,
   });
 
@@ -363,22 +366,40 @@ export function PostForm({
             )}
           </Field>
 
-          <Field id="categoryId" label={adminCopy.editor.category} error={fields.categoryId}>
-            {(props) => (
-              <select
-                {...props}
-                name="categoryId"
-                defaultValue={post.category_id}
-                className={inputClasses}
-              >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name_id}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
+          {/* Teks alternatif cover duduk tepat di sebelah covernya, bukan di
+              dalam blok bahasa. Keduanya satu keputusan: gambar apa, dan apa
+              yang dibacakan pembaca layar tentang gambar itu. Yang tampil di
+              sini selalu sisi BAHASA SUMBER; sisi terjemahannya tetap di blok
+              bahasa satunya, diisi mesin bersama isi artikel. */}
+          {sourceLocale === "id" ? (
+            <Field id="coverAltId" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltId}>
+              {(props) => (
+                <input
+                  {...props}
+                  name="coverAltId"
+                  type="text"
+                  maxLength={LIMITS.coverAlt}
+                  value={coverAltId}
+                  onChange={(e) => setCoverAltId(e.target.value)}
+                  className={inputClasses}
+                />
+              )}
+            </Field>
+          ) : (
+            <Field id="coverAltEn" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltEn}>
+              {(props) => (
+                <input
+                  {...props}
+                  name="coverAltEn"
+                  type="text"
+                  maxLength={LIMITS.coverAlt}
+                  value={coverAltEn}
+                  onChange={(e) => setCoverAltEn(e.target.value)}
+                  className={inputClasses}
+                />
+              )}
+            </Field>
+          )}
 
           <Field
             id="sourceLocale"
@@ -400,21 +421,22 @@ export function PostForm({
             )}
           </Field>
 
-          <Field
-            id="publishedAtWib"
-            label={adminCopy.editor.publishedAt}
-            hint={adminCopy.editor.publishedAtHint}
-            error={fields.publishedAt}
-          >
+          {/* Kategori menempati bekas posisi "Tanggal & jam terbit", yang kini
+              pindah ke balik tombol Jadwalkan. */}
+          <Field id="categoryId" label={adminCopy.editor.category} error={fields.categoryId}>
             {(props) => (
-              <input
+              <select
                 {...props}
-                name="publishedAtWib"
-                type="datetime-local"
-                value={publishedAt}
-                onChange={(e) => setPublishedAt(e.target.value)}
+                name="categoryId"
+                defaultValue={post.category_id}
                 className={inputClasses}
-              />
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name_id}
+                  </option>
+                ))}
+              </select>
             )}
           </Field>
         </div>
@@ -488,19 +510,26 @@ export function PostForm({
               )}
             </Field>
 
-            <Field id="coverAltId" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltId}>
+            {/* Hanya sisi TERJEMAHAN yang menampilkannya di sini. Sisi sumber
+                sudah punya kolom ini di bagian Identitas, tepat di sebelah
+                covernya. Merender keduanya berarti dua input bernama sama
+                dalam satu formulir — yang terkirim jadi bergantung urutan DOM,
+                bukan pada apa yang diketik orang. */}
+            {sourceLocale !== "id" ? (
+              <Field id="coverAltId" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltId}>
               {(props) => (
-                <input
-                  {...props}
-                  name="coverAltId"
-                  type="text"
-                  maxLength={LIMITS.coverAlt}
-                  value={coverAltId}
-                  onChange={(e) => setCoverAltId(e.target.value)}
-                  className={inputClasses}
-                />
+              <input
+              {...props}
+              name="coverAltId"
+              type="text"
+              maxLength={LIMITS.coverAlt}
+              value={coverAltId}
+              onChange={(e) => setCoverAltId(e.target.value)}
+              className={inputClasses}
+              />
               )}
-            </Field>
+              </Field>
+            ) : null}
           </div>
         </fieldset>
 
@@ -556,19 +585,26 @@ export function PostForm({
               )}
             </Field>
 
-            <Field id="coverAltEn" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltEn}>
+            {/* Hanya sisi TERJEMAHAN yang menampilkannya di sini. Sisi sumber
+                sudah punya kolom ini di bagian Identitas, tepat di sebelah
+                covernya. Merender keduanya berarti dua input bernama sama
+                dalam satu formulir — yang terkirim jadi bergantung urutan DOM,
+                bukan pada apa yang diketik orang. */}
+            {sourceLocale !== "en" ? (
+              <Field id="coverAltEn" label={adminCopy.editor.fieldCoverAlt} error={fields.coverAltEn}>
               {(props) => (
-                <input
-                  {...props}
-                  name="coverAltEn"
-                  type="text"
-                  maxLength={LIMITS.coverAlt}
-                  value={coverAltEn}
-                  onChange={(e) => setCoverAltEn(e.target.value)}
-                  className={inputClasses}
-                />
+              <input
+              {...props}
+              name="coverAltEn"
+              type="text"
+              maxLength={LIMITS.coverAlt}
+              value={coverAltEn}
+              onChange={(e) => setCoverAltEn(e.target.value)}
+              className={inputClasses}
+              />
               )}
-            </Field>
+              </Field>
+            ) : null}
           </div>
         </fieldset>
       </div>
@@ -624,24 +660,32 @@ export function PostForm({
         ) : null}
 
         {showPreview ? (
-          <div className="mt-5 grid gap-8 lg:grid-cols-2">
-            {/* Dirender lewat komponen yang sama dengan halaman publik, jadi
+          <div className="mt-5">
+            {/* Hanya sisi TERJEMAHAN yang dipratinjau — sisi sumber sudah
+                terlihat langsung di kotak Isi sambil diketik, jadi menampilkan
+                keduanya cuma menggandakan layar. Yang benar-benar perlu dibaca
+                ulang adalah bahasa yang bukan tulisan Salsabilah sendiri.
+
+                Dirender lewat komponen yang sama dengan halaman publik, jadi
                 yang terlihat di sini persis yang akan terbit — dan seperti di
                 sana, tidak ada dangerouslySetInnerHTML di mana pun. */}
-            <PreviewPane
-              legend={adminCopy.editor.groupId}
-              title={titleId}
-              doc={docId}
-              locale="id"
-              empty={adminCopy.editor.previewEmpty}
-            />
-            <PreviewPane
-              legend={adminCopy.editor.groupEn}
-              title={titleEn}
-              doc={docEn}
-              locale="en"
-              empty={adminCopy.editor.previewEmpty}
-            />
+            {sourceLocale === "id" ? (
+              <PreviewPane
+                legend={adminCopy.editor.groupEn}
+                title={titleEn}
+                doc={docEn}
+                locale="en"
+                empty={adminCopy.editor.previewEmpty}
+              />
+            ) : (
+              <PreviewPane
+                legend={adminCopy.editor.groupId}
+                title={titleId}
+                doc={docId}
+                locale="id"
+                empty={adminCopy.editor.previewEmpty}
+              />
+            )}
           </div>
         ) : (
           <p className="m-0 mt-3 text-[13px] text-muted">{adminCopy.editor.previewHint}</p>
@@ -700,9 +744,58 @@ export function PostForm({
 
         <div className="flex flex-wrap gap-3">
           <ActionButton intent="draft" label={adminCopy.editor.saveDraft} variant="ghost" />
-          <ActionButton intent="schedule" label={adminCopy.editor.schedule} variant="ghost" />
+
+          {/*
+            "Jadwalkan" kini membuka kolom tanggalnya, bukan langsung mengirim.
+            Kolom itu dulu duduk di bagian Identitas dan selalu terlihat, padahal
+            hanya dipakai untuk satu dari tiga tombol — dan "Terbitkan sekarang"
+            justru MENGABAIKANNYA. Menampilkannya terus-menerus mengundang orang
+            mengisinya lalu heran kenapa tidak berpengaruh.
+
+            type="button", jadi menekannya tidak menyimpan apa pun.
+          */}
+          <button
+            type="button"
+            onClick={() => setShowSchedule((on) => !on)}
+            aria-expanded={showSchedule}
+            className="inline-flex items-center rounded-full border border-line bg-surface px-5 py-2.5 text-[14.5px] font-semibold text-ink transition-opacity hover:opacity-85"
+          >
+            {adminCopy.editor.schedule}
+          </button>
+
           <ActionButton intent="publish" label={adminCopy.editor.publishNow} variant="primary" />
         </div>
+
+        {showSchedule ? (
+          <div className="mt-5 rounded-[12px] border border-line bg-bg p-5">
+            <div className="md:max-w-[420px]">
+              <Field
+                id="publishedAtWib"
+                label={adminCopy.editor.publishedAt}
+                hint={adminCopy.editor.publishedAtHint}
+                error={fields.publishedAt}
+              >
+                {(props) => (
+                  <input
+                    {...props}
+                    name="publishedAtWib"
+                    type="datetime-local"
+                    value={publishedAt}
+                    onChange={(e) => setPublishedAt(e.target.value)}
+                    className={inputClasses}
+                  />
+                )}
+              </Field>
+            </div>
+            <div className="mt-4">
+              <ActionButton
+                intent="schedule"
+                label={adminCopy.editor.scheduleConfirm}
+                variant="ghost"
+              />
+            </div>
+          </div>
+        ) : null}
 
         <p className="m-0 mt-3 text-[12.5px] leading-relaxed text-muted">
           {adminCopy.editor.publishNowHint}

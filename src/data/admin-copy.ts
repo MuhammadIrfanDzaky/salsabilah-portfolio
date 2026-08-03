@@ -100,7 +100,7 @@ export const adminCopy = {
     publishedAt: "Tanggal & jam terbit (WIB)",
     publishedAtHint: "Disimpan dalam UTC, ditampilkan dalam WIB. Jam di masa depan berarti terjadwal.",
     publishNowHint:
-      "Terbitkan sekarang mengabaikan tanggal di masa depan dan menerbitkan saat ini juga. Untuk terbit di kemudian hari, pakai Jadwalkan.",
+      "Terbitkan sekarang tidak butuh tanggal — waktunya diisi saat itu juga. Untuk terbit di kemudian hari, tekan Jadwalkan dan pilih waktunya di sana.",
 
     coverCurrent: "Cover saat ini",
     coverNone: "Belum ada cover.",
@@ -124,7 +124,8 @@ export const adminCopy = {
     checklistDone: "Semua syarat terpenuhi.",
 
     saveDraft: "Simpan draf",
-    schedule: "Jadwalkan",
+    schedule: "Jadwalkan…",
+    scheduleConfirm: "Jadwalkan terbit",
     publishNow: "Terbitkan sekarang",
     unpublish: "Tarik dari publik",
     archive: "Arsipkan",
