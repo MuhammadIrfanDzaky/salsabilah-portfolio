@@ -7,7 +7,6 @@ import { adminCopy } from "@/data/admin-copy";
 import {
   archivePost,
   deletePostPermanently,
-  markTranslationReviewed,
   restorePost,
   unpublish,
 } from "@/app/admin/(dasbor)/artikel/actions";
@@ -61,18 +60,12 @@ function Pesan({ state }: { state: ActionResult | null }) {
 }
 
 export function TranslationPanel({
-  postId,
   translationStatus,
   showSourceEditedWarning,
 }: {
-  postId: string;
   translationStatus: string;
   showSourceEditedWarning: boolean;
 }) {
-  const [state, formAction] = useActionState<ActionResult | null, FormData>(
-    markTranslationReviewed,
-    null,
-  );
   const reviewed = translationStatus === "reviewed";
 
   return (
@@ -91,29 +84,26 @@ export function TranslationPanel({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3">
-        {!reviewed ? (
-          <form action={formAction}>
-            <input type="hidden" name="postId" value={postId} />
-            <Submit label={adminCopy.editor.markReviewed} />
-          </form>
-        ) : null}
+      {/*
+        Panel ini kini hanya MELAPORKAN keadaan. Dua tombolnya sudah pindah ke
+        dalam formulir (2026-07-29):
 
-      </div>
+        - "Buat draft terjemahan" → tombol Preview
+        - "Tandai terjemahan sudah ditinjau" → tepat di bawah pratinjau
 
-      {/* Tombol "Buat draft terjemahan" DIHAPUS dari sini (2026-07-29).
-          Terjemahan kini dipicu tombol Preview di dalam formulir, supaya juga
-          bekerja di layar artikel baru — di mana panel ini tidak dirender sama
-          sekali karena artikelnya belum punya baris.
+        Alasannya sama untuk keduanya, dan bukan sekadar kerapian: panel ini
+        tidak pernah dirender di layar artikel baru, karena artikelnya belum
+        punya baris. Selama tombolnya di sini, keduanya mustahil dipakai persis
+        di saat paling dibutuhkan — waktu artikel pertama sedang ditulis.
 
-          Membiarkan keduanya bukan sekadar mubazir: jalur lama menulis langsung
-          ke database sedangkan jalur baru mengisi formulir, jadi hasil yang
-          tersimpan bisa berbeda dari yang terlihat di layar tergantung tombol
-          mana yang ditekan. */}
+        Yang kedua juga jadi lebih jujur setelah pindah: tandanya sekarang
+        terikat pada isi sumber saat ditekan, dan lepas sendiri kalau sumbernya
+        disunting lagi. Di sini ia cuma boolean yang tidak tahu apa yang sudah
+        dibaca orang.
+      */}
       <p className="m-0 mt-2 text-[12.5px] leading-relaxed text-muted">
         {adminCopy.editor.translationHint}
       </p>
-      <Pesan state={state} />
     </section>
   );
 }

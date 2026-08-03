@@ -133,6 +133,21 @@ export async function saveArticle(
 
   const docs = readDocs(formData);
 
+  /*
+   * Tanda "terjemahan sudah ditinjau" ikut formulir, bukan lewat action sendiri.
+   *
+   * Itu yang membuatnya bekerja di layar artikel baru — sebelumnya tandanya
+   * hanya bisa dipasang lewat panel di halaman sunting, yang tidak ada di sana.
+   * Di sisi klien tandanya terikat pada isi sumber saat tombolnya ditekan dan
+   * lepas sendiri bila sumbernya berubah; di sini yang dibaca tinggal hasilnya.
+   *
+   * Ditulis 'pending' saat tandanya kosong HANYA untuk draf. Untuk artikel yang
+   * sudah terbit, menurunkannya akan ditolak CHECK constraint
+   * (published wajib reviewed) dan memperbaiki satu huruf salah jadi mustahil —
+   * perilaku yang memang sudah didokumentasikan sejak awal.
+   */
+  const ditinjau = String(formData.get("translationReviewed") ?? "") === "1";
+
   const validCategoryIds = await loadCategories(guard);
   const parsed = validatePostForm(readForm(formData, docs), { validCategoryIds });
   if (!parsed.ok) {
@@ -163,7 +178,14 @@ export async function saveArticle(
   if (!postId) {
     const { data, error } = await guard.supabase
       .from("posts")
-      .insert({ ...value, doc_id: toJson(docs.id), doc_en: toJson(docs.en), status, published_at: publishedAt })
+      .insert({
+        ...value,
+        doc_id: toJson(docs.id),
+        doc_en: toJson(docs.en),
+        translation_status: ditinjau ? "reviewed" : "pending",
+        status,
+        published_at: publishedAt,
+      })
       .select("id")
       .single();
 
@@ -227,6 +249,11 @@ export async function saveArticle(
       body_en: value.body_en,
       doc_id: toJson(docs.id),
       doc_en: toJson(docs.en),
+      ...(ditinjau
+        ? { translation_status: "reviewed" }
+        : status === "draft"
+          ? { translation_status: "pending" }
+          : {}),
       cover_alt_id: value.cover_alt_id,
       cover_alt_en: value.cover_alt_en,
       status,
@@ -281,18 +308,16 @@ async function patchPost(
   return { ok: true, message };
 }
 
-export async function markTranslationReviewed(
-  _previous: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  const postId = String(formData.get("postId") ?? "");
-  return patchPost(
-    postId,
-    { translation_status: "reviewed" },
-    "tandai-ditinjau",
-    "Terjemahan ditandai sudah ditinjau.",
-  );
-}
+/*
+ * `markTranslationReviewed` sebagai Server Action tersendiri DIHAPUS
+ * (2026-07-29). Tandanya kini ikut formulir lewat `translationReviewed`,
+ * supaya juga bisa dipasang di layar artikel baru — panel yang dulu memuatnya
+ * tidak pernah dirender di sana.
+ *
+ * Dihapus, bukan dibiarkan menganggur: Server Action yang ter-ekspor tetap
+ * endpoint POST yang bisa dijangkau dari luar, apa pun yang dirender halaman.
+ * Sama alasannya dengan `uploadCover` dan `generateTranslationDraft`.
+ */
 
 /**
  * Tarik dari publik. `published_at` sengaja dibiarkan apa adanya: constraint

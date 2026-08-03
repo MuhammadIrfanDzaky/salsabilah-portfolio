@@ -82,7 +82,6 @@ export default async function SuntingArtikelPage({
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="flex flex-col gap-8">
             <TranslationPanel
-              postId={post.id}
               translationStatus={post.translation_status}
               // Peringatan hanya relevan untuk artikel yang sudah publik:
               // trigger di database sudah menurunkan status tinjauan sendiri

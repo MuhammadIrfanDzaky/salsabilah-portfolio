@@ -13,6 +13,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { ArticleImage } from "@/components/admin/article-image-node";
 import { uploadArticleImage } from "@/app/admin/(dasbor)/artikel/actions";
+import { inputClasses } from "@/components/admin/field";
 import { sanitizeDoc, type Doc } from "@/lib/doc";
 
 /**
@@ -36,9 +37,12 @@ import { sanitizeDoc, type Doc } from "@/lib/doc";
 /** Ekstensi yang dipakai bersama oleh editor dan pratinjau. */
 export const ARTICLE_EXTENSIONS = [
   StarterKit.configure({
-    heading: { levels: [2, 3] },
-    // Judul artikel adalah satu-satunya H1 di halaman. Membiarkan editor
-    // membuat H1 lagi merusak hierarki heading yang dinilai pembaca layar.
+    // H1–H6 atas permintaan pemilik (2026-07-29). Judul artikel sendiri sudah
+    // menjadi <h1> halaman, jadi memakai H1 di dalam isi membuat satu halaman
+    // punya dua judul utama — pembaca layar menavigasi lewat daftar heading,
+    // dan daftar itu jadi berbohong tentang mana judulnya. Untuk subjudul
+    // biasa, mulai dari H2.
+    heading: { levels: [1, 2, 3, 4, 5, 6] },
     codeBlock: false,
     code: false,
     link: false,
@@ -99,6 +103,132 @@ function Pemisah() {
   return <span aria-hidden="true" className="mx-1 h-6 w-px self-center bg-line" />;
 }
 
+
+/**
+ * Modal tautan.
+ *
+ * Menggantikan `window.prompt`, yang tidak bisa ditata sama sekali, memaksa
+ * kotak abu-abu peramban dengan judul domain di atasnya, dan tidak punya tempat
+ * untuk menjelaskan alamat seperti apa yang diterima. Yang di sini bisa: satu
+ * kolom, aturan penulisannya terlihat, dan tombol Lepas tautan berdiri sendiri
+ * alih-alih disembunyikan di balik "kosongkan untuk melepas".
+ */
+function ModalTautan({
+  awal,
+  sedangMenaut,
+  onSimpan,
+  onLepas,
+  onTutup,
+}: {
+  awal: string;
+  sedangMenaut: boolean;
+  onSimpan: (href: string) => void;
+  onLepas: () => void;
+  onTutup: () => void;
+}) {
+  const [nilai, setNilai] = useState(awal || "https://");
+  const [galat, setGalat] = useState<string | null>(null);
+  const kolom = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    kolom.current?.focus();
+    kolom.current?.select();
+  }, []);
+
+  function simpan() {
+    const bersih = nilai.trim();
+    if (!bersih) {
+      setGalat("Alamat tidak boleh kosong. Pakai Lepas tautan untuk menghapusnya.");
+      return;
+    }
+    if (!/^(https?:\/\/|mailto:|\/)/i.test(bersih)) {
+      setGalat("Harus diawali https://, http://, mailto:, atau / untuk halaman di situs ini.");
+      return;
+    }
+    onSimpan(bersih);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      // Klik di luar kotak menutup. Tidak menyimpan apa pun — membatalkan
+      // adalah tindakan yang aman, menyimpan tidak.
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onTutup();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="judul-tautan"
+        className="w-full max-w-[440px] rounded-[14px] border border-line bg-surface p-6 shadow-xl"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onTutup();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            simpan();
+          }
+        }}
+      >
+        <h2
+          id="judul-tautan"
+          className="m-0 mb-1 font-serif text-[20px] font-semibold text-ink"
+        >
+          {sedangMenaut ? "Ubah tautan" : "Tambah tautan"}
+        </h2>
+        <p className="m-0 mb-4 text-[13px] leading-relaxed text-muted">
+          Alamat lengkap situs lain (<code>https://…</code>), alamat email
+          (<code>mailto:…</code>), atau halaman di situs ini (<code>/id/blog</code>).
+        </p>
+
+        <input
+          ref={kolom}
+          type="text"
+          value={nilai}
+          onChange={(e) => {
+            setNilai(e.target.value);
+            setGalat(null);
+          }}
+          aria-invalid={galat ? true : undefined}
+          className={`${inputClasses} font-mono text-[14px]`}
+        />
+
+        {galat ? (
+          <p role="alert" className="m-0 mt-2 text-[13px] font-semibold text-accent-strong">
+            {galat}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+          {sedangMenaut ? (
+            <button
+              type="button"
+              onClick={onLepas}
+              className="mr-auto inline-flex items-center rounded-full border border-accent-strong/50 bg-surface px-4 py-2 text-[14px] font-semibold text-accent-strong transition-opacity hover:opacity-85"
+            >
+              Lepas tautan
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onTutup}
+            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-semibold text-ink transition-opacity hover:opacity-85"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={simpan}
+            className="inline-flex items-center rounded-full bg-accent-strong px-5 py-2 text-[14px] font-semibold text-on-accent transition-opacity hover:opacity-85"
+          >
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Toolbar({
   editor,
   onInsertImage,
@@ -111,6 +241,8 @@ function Toolbar({
   // Toolbar harus digambar ulang setiap kali seleksi berpindah, kalau tidak
   // keadaan aktif tombolnya berbohong. `useEditorState` belum dipakai supaya
   // tidak menambah dependensi; langganan manual sudah cukup untuk satu editor.
+  const [modalTautan, setModalTautan] = useState(false);
+
   const [, paksaGambarUlang] = useState(0);
   useEffect(() => {
     const tandai = () => paksaGambarUlang((n) => n + 1);
@@ -121,23 +253,6 @@ function Toolbar({
       editor.off("transaction", tandai);
     };
   }, [editor]);
-
-  function pasangTautan() {
-    const sekarang = editor.getAttributes("link").href as string | undefined;
-    const isi = window.prompt("Alamat tautan (kosongkan untuk melepas):", sekarang ?? "https://");
-    if (isi === null) return;
-
-    const bersih = isi.trim();
-    if (bersih === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    if (!/^(https?:\/\/|mailto:|\/)/i.test(bersih)) {
-      window.alert("Alamat harus diawali https://, http://, mailto:, atau /");
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: bersih }).run();
-  }
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface px-2 py-2">
@@ -162,12 +277,36 @@ function Toolbar({
 
       <Pemisah />
 
-      <Tombol label="Subjudul" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
-        H2
-      </Tombol>
-      <Tombol label="Sub-subjudul" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
-        H3
-      </Tombol>
+      {/* Satu dropdown, bukan enam tombol. Enam tombol H akan memakan separuh
+          toolbar dan membuat yang benar-benar sering dipakai — tebal, daftar —
+          terdorong ke baris berikutnya. */}
+      <select
+        aria-label="Tingkat judul"
+        title="Tingkat judul"
+        value={
+          ([1, 2, 3, 4, 5, 6] as const).find((n) => editor.isActive("heading", { level: n }))?.toString() ??
+          "p"
+        }
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "p") editor.chain().focus().setParagraph().run();
+          else
+            editor
+              .chain()
+              .focus()
+              .setHeading({ level: Number(v) as 1 | 2 | 3 | 4 | 5 | 6 })
+              .run();
+        }}
+        className="h-8 rounded-[7px] border border-line bg-surface px-2 text-[13px] font-semibold text-ink"
+      >
+        <option value="p">Paragraf</option>
+        <option value="1">Judul 1</option>
+        <option value="2">Judul 2</option>
+        <option value="3">Judul 3</option>
+        <option value="4">Judul 4</option>
+        <option value="5">Judul 5</option>
+        <option value="6">Judul 6</option>
+      </select>
       <Tombol label="Daftar berpoin" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
         •—
       </Tombol>
@@ -180,7 +319,7 @@ function Toolbar({
 
       <Pemisah />
 
-      <Tombol label="Tautan" active={editor.isActive("link")} onClick={pasangTautan}>
+      <Tombol label="Tautan" active={editor.isActive("link")} onClick={() => setModalTautan(true)}>
         🔗
       </Tombol>
       {onInsertImage ? (
@@ -206,15 +345,40 @@ function Toolbar({
       >
         ▦
       </Tombol>
-      <Tombol label="Tambah baris" disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
-        +baris
-      </Tombol>
-      <Tombol label="Tambah kolom" disabled={!editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
-        +kolom
-      </Tombol>
-      <Tombol label="Hapus tabel" disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
-        ▦×
-      </Tombol>
+      {/* Kontrol tabel hanya muncul saat kursor benar-benar berada di dalam
+          tabel. Sebelumnya ia selalu tampil dalam keadaan nonaktif, yang cuma
+          menambah tombol mati di toolbar dan menyulitkan menemukan yang hidup. */}
+      {editor.isActive("table") ? (
+        <>
+          <Tombol label="Sisipkan baris di atas" disabled={!editor.can().addRowBefore()} onClick={() => editor.chain().focus().addRowBefore().run()}>
+            ↑baris
+          </Tombol>
+          <Tombol label="Sisipkan baris di bawah" disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
+            ↓baris
+          </Tombol>
+          <Tombol label="Hapus baris ini" disabled={!editor.can().deleteRow()} onClick={() => editor.chain().focus().deleteRow().run()}>
+            ×baris
+          </Tombol>
+          <Tombol label="Sisipkan kolom di kiri" disabled={!editor.can().addColumnBefore()} onClick={() => editor.chain().focus().addColumnBefore().run()}>
+            ←kolom
+          </Tombol>
+          <Tombol label="Sisipkan kolom di kanan" disabled={!editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
+            →kolom
+          </Tombol>
+          <Tombol label="Hapus kolom ini" disabled={!editor.can().deleteColumn()} onClick={() => editor.chain().focus().deleteColumn().run()}>
+            ×kolom
+          </Tombol>
+          <Tombol label="Jadikan/batalkan baris judul" disabled={!editor.can().toggleHeaderRow()} onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
+            baris judul
+          </Tombol>
+          <Tombol label="Gabungkan atau pisahkan sel" disabled={!editor.can().mergeOrSplit()} onClick={() => editor.chain().focus().mergeOrSplit().run()}>
+            gabung/pisah
+          </Tombol>
+          <Tombol label="Hapus seluruh tabel" disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
+            ▦×
+          </Tombol>
+        </>
+      ) : null}
 
       <Pemisah />
 
@@ -224,6 +388,25 @@ function Toolbar({
       <Tombol label="Ulangi" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
         ↷
       </Tombol>
+
+      {modalTautan ? (
+        <ModalTautan
+          awal={(editor.getAttributes("link").href as string | undefined) ?? ""}
+          sedangMenaut={editor.isActive("link")}
+          onTutup={() => {
+            setModalTautan(false);
+            editor.chain().focus().run();
+          }}
+          onLepas={() => {
+            setModalTautan(false);
+            editor.chain().focus().extendMarkRange("link").unsetLink().run();
+          }}
+          onSimpan={(href) => {
+            setModalTautan(false);
+            editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

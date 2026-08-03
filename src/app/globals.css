@@ -197,12 +197,25 @@ button {
   line-height: 1.75;
 }
 
+/* Keenam tingkat ditata, bukan hanya h2 dan h3. Sejak H1–H6 tersedia di
+   toolbar, tingkat yang tidak punya aturan di sini akan terlihat persis seperti
+   paragraf saat mengetik — cacat yang sama yang membuat "Tebal" dulu tidak
+   kelihatan. Ukurannya mengikuti post-doc.tsx supaya yang terlihat saat menulis
+   mendekati yang akan terbit. */
+.ProseMirror h1,
 .ProseMirror h2,
-.ProseMirror h3 {
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
   margin: 0;
   font-family: var(--font-serif, Georgia, serif);
   font-weight: 600;
   line-height: 1.25;
+}
+
+.ProseMirror h1 {
+  font-size: 32px;
 }
 
 .ProseMirror h2 {
@@ -211,6 +224,25 @@ button {
 
 .ProseMirror h3 {
   font-size: 21px;
+}
+
+.ProseMirror h4 {
+  font-size: 18px;
+}
+
+/* H5 dan H6 berhenti mengecil dan berpindah ke kapital kecil: teks yang lebih
+   kecil dari isi artikel akan terbaca sebagai catatan kaki, bukan judul bagian. */
+.ProseMirror h5 {
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ProseMirror h6 {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
 }
 
 .ProseMirror strong {

@@ -115,6 +115,8 @@ export const adminCopy = {
     translationPending: "Terjemahan belum ditinjau.",
     translationReviewed: "Terjemahan sudah ditandai ditinjau.",
     markReviewed: "Tandai terjemahan sudah ditinjau",
+    markReviewedHint:
+      "Tekan setelah Anda benar-benar membaca sisi terjemahannya. Tandanya lepas sendiri kalau teks sumber diubah lagi — yang dinyatakan sudah dibaca adalah versi ini, bukan artikelnya secara umum.",
     translationHint:
       "Terjemahan dibuat lewat tombol Preview di dalam formulir di atas. Hasilnya selalu draft: baca ulang dan perbaiki sebelum menandainya sudah ditinjau. Istilah di glosarium diperiksa otomatis — kalau ada yang ikut diterjemahkan, draftnya ditolak.",
     sourceEditedWarning:

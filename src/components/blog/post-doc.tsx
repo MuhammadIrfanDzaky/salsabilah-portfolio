@@ -86,9 +86,20 @@ function renderNode(node: DocNode, locale: Locale, key: string): ReactNode {
       );
 
     case "heading": {
-      const level = node.attrs?.level === 3 ? 3 : 2;
-      const Tag = level === 3 ? "h3" : "h2";
-      const size = level === 3 ? "text-[clamp(19px,2.4vw,22px)]" : "text-[clamp(22px,3vw,28px)]";
+      const raw = node.attrs?.level;
+      const level = typeof raw === "number" && raw >= 1 && raw <= 6 ? raw : 2;
+      const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+      // Ukurannya menurun bertahap; H5 dan H6 berhenti mengecil dan berpindah
+      // ke huruf kapital kecil, karena teks lebih kecil dari isi artikel akan
+      // terbaca sebagai catatan kaki, bukan sebagai judul bagian.
+      const size = [
+        "text-[clamp(26px,3.6vw,34px)]",
+        "text-[clamp(22px,3vw,28px)]",
+        "text-[clamp(19px,2.4vw,22px)]",
+        "text-[18px]",
+        "text-[16px] uppercase tracking-[0.08em]",
+        "text-[15px] uppercase tracking-[0.1em] text-ink/75",
+      ][level - 1];
       return (
         <Tag
           key={key}

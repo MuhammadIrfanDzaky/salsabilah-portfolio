@@ -167,6 +167,27 @@ export function PostForm({
   // nilai yang sudah tersimpan membuat orang mengira jadwalnya hilang.
   const [showSchedule, setShowSchedule] = useState(Boolean(post.published_at));
 
+  /*
+   * Tanda "terjemahan sudah ditinjau", diikat pada ISI SUMBER saat ditandai.
+   *
+   * Tandanya bukan boolean lepas melainkan cap dari teks sumber pada saat
+   * tombolnya ditekan. Begitu Salsabilah menyunting sumbernya lagi, capnya
+   * tidak lagi cocok dan tandanya lepas sendiri — tanpa efek, tanpa urutan yang
+   * bisa salah. Itu yang membuat gate ini bukan stempel kosong: yang dinyatakan
+   * sudah dibaca adalah versi tertentu, bukan artikelnya secara umum.
+   *
+   * Kenapa gate-nya dipertahankan sama sekali: dua batas terjemahan yang
+   * terukur — `missingTerms()` hanya menangkap istilah yang hilang total (bukan
+   * per kemunculan), dan sel tabel kehilangan konteks karena dikirim berdiri
+   * sendiri. Keduanya hanya bisa ditangkap mata manusia.
+   */
+  const sourceDoc = sourceLocale === "id" ? docId : docEn;
+  const sourceSig = JSON.stringify([sourceLocale === "id" ? titleId : titleEn, sourceDoc]);
+  const [reviewedSig, setReviewedSig] = useState<string | null>(
+    post.translation_status === "reviewed" ? sourceSig : null,
+  );
+  const reviewed = reviewedSig === sourceSig;
+
   const kurang = publishBlockers({
     title_id: titleId,
     title_en: titleEn,
@@ -176,7 +197,7 @@ export function PostForm({
     // menuduh "cover belum ada" padahal gambarnya sudah terpasang di formulir
     // dan akan terunggah pada simpan berikutnya.
     cover_path: post.cover_path ?? (coverFile ? "dipilih" : null),
-    translation_status: post.translation_status,
+    translation_status: reviewed ? "reviewed" : "pending",
   });
 
   const sourceTitle = sourceLocale === "en" ? titleEn : titleId;
@@ -300,6 +321,9 @@ export function PostForm({
   return (
     <form action={formAction} className="flex flex-col gap-8" noValidate>
       <input type="hidden" name="postId" value={post.id ?? ""} />
+      {/* Dibaca `saveArticle` untuk menyetel `translation_status`. Nilainya
+          lepas sendiri saat teks sumber berubah — lihat `sourceSig` di atas. */}
+      <input type="hidden" name="translationReviewed" value={reviewed ? "1" : ""} readOnly />
 
       {failed ? (
         <div
@@ -660,36 +684,57 @@ export function PostForm({
         ) : null}
 
         {showPreview ? (
-          <div className="mt-5">
-            {/* Hanya sisi TERJEMAHAN yang dipratinjau — sisi sumber sudah
-                terlihat langsung di kotak Isi sambil diketik, jadi menampilkan
-                keduanya cuma menggandakan layar. Yang benar-benar perlu dibaca
-                ulang adalah bahasa yang bukan tulisan Salsabilah sendiri.
-
-                Dirender lewat komponen yang sama dengan halaman publik, jadi
+          <div className="mt-5 grid gap-8 lg:grid-cols-2">
+            {/* Dirender lewat komponen yang sama dengan halaman publik, jadi
                 yang terlihat di sini persis yang akan terbit — dan seperti di
                 sana, tidak ada dangerouslySetInnerHTML di mana pun. */}
-            {sourceLocale === "id" ? (
-              <PreviewPane
-                legend={adminCopy.editor.groupEn}
-                title={titleEn}
-                doc={docEn}
-                locale="en"
-                empty={adminCopy.editor.previewEmpty}
-              />
-            ) : (
-              <PreviewPane
-                legend={adminCopy.editor.groupId}
-                title={titleId}
-                doc={docId}
-                locale="id"
-                empty={adminCopy.editor.previewEmpty}
-              />
-            )}
+            <PreviewPane
+              legend={adminCopy.editor.groupId}
+              title={titleId}
+              doc={docId}
+              locale="id"
+              empty={adminCopy.editor.previewEmpty}
+            />
+            <PreviewPane
+              legend={adminCopy.editor.groupEn}
+              title={titleEn}
+              doc={docEn}
+              locale="en"
+              empty={adminCopy.editor.previewEmpty}
+            />
           </div>
         ) : (
           <p className="m-0 mt-3 text-[13px] text-muted">{adminCopy.editor.previewHint}</p>
         )}
+
+        {/* Finalisasi. Sengaja di sini, tepat di bawah apa yang baru saja
+            dibaca — bukan di panel samping halaman sunting, yang tidak pernah
+            ada di layar artikel baru. */}
+        {showPreview ? (
+          <div className="mt-6 border-t border-line pt-5">
+            {reviewed ? (
+              <p className="m-0 text-[14px] text-ink">
+                <span aria-hidden="true" className="mr-1.5 text-accent-strong">
+                  ✓
+                </span>
+                {adminCopy.editor.translationReviewed}
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setReviewedSig(sourceSig)}
+                  className="inline-flex items-center rounded-full border border-accent-strong/50 bg-surface px-5 py-2.5 text-[14.5px] font-semibold text-accent-strong transition-opacity hover:opacity-85"
+                >
+                  {adminCopy.editor.markReviewed}
+                </button>
+                <p className="m-0 mt-2 text-[12.5px] leading-relaxed text-muted">
+                  {adminCopy.editor.markReviewedHint}
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
       </section>
 
       {/* ------------------------------------------------------------ slug */}

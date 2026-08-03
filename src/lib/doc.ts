@@ -78,8 +78,17 @@ const NODE_TYPES = new Set([
  */
 const SAFE_LINK = /^(https?:|mailto:|\/)/i;
 
-/** Tingkat subjudul yang tersedia. H1 milik judul artikel, jadi tidak ada di isi. */
-const HEADING_LEVELS = new Set([2, 3]);
+/**
+ * Tingkat subjudul yang tersedia: H1–H6, atas permintaan pemilik (2026-07-29).
+ *
+ * **Catatan yang layak dibaca sebelum memakai H1 di dalam isi.** Judul artikel
+ * sudah menjadi `<h1>` halaman. Menambah H1 lagi di badan tulisan membuat satu
+ * halaman punya dua judul utama, dan pembaca layar menavigasi lewat daftar
+ * heading — dua H1 membuat daftar itu berbohong tentang mana yang judul.
+ * Untuk subjudul biasa, mulai dari H2. H1 tersedia karena diminta, bukan karena
+ * disarankan.
+ */
+const HEADING_LEVELS = new Set([1, 2, 3, 4, 5, 6]);
 
 function sanitizeMarks(value: unknown): DocMark[] | undefined {
   if (!Array.isArray(value)) return undefined;
