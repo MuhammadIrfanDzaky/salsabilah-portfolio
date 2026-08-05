@@ -6,7 +6,10 @@ import { describeDbError } from "@/lib/admin/errors";
 import { requireAdmin, type ActionResult, type GuardResult } from "@/lib/admin/guard";
 import { publishNowDate } from "@/lib/admin/publish";
 import {
+  COVER_MIN_WIDTH,
   CoverError,
+  type CoverErrorDetail,
+  type CoverProcessingError,
   MAX_COVER_BYTES,
   buildBodyImagePath,
   buildCoverPath,
@@ -190,11 +193,15 @@ export async function saveArticle(
      * sudah ada di formulir — tidak perlu menunggu id.
      */
     let coverPath: string | null = null;
-    let coverGagal = false;
+    // Alasannya disimpan, bukan cuma faktanya. Versi sebelumnya hanya menyalakan
+    // sebuah boolean dan membuang `unggah.message`, sehingga layar berkata
+    // "Cover gagal diunggah" tanpa pernah menyebut sebabnya — padahal sebabnya
+    // sudah dihitung persis satu baris di atas, lengkap dengan angkanya.
+    let coverGagalPesan: string | null = null;
     if (coverBaru) {
       const unggah = await unggahCover(guard, value.slug, coverBaru);
       if (unggah.ok) coverPath = unggah.path;
-      else coverGagal = true;
+      else coverGagalPesan = unggah.message;
     }
 
     /*
@@ -204,10 +211,11 @@ export async function saveArticle(
      * daftar yang justru menyatakan semuanya sudah beres. Aman berhenti karena
      * belum ada baris yang lahir: isian formulirnya utuh dan tinggal diulang.
      */
-    if (coverGagal && status === "published") {
+    if (coverGagalPesan && status === "published") {
       return {
         ok: false,
-        message: "Cover gagal diunggah, jadi artikelnya belum bisa terbit. Coba pilih gambarnya lagi.",
+        message: `Artikel belum bisa terbit karena covernya gagal diunggah. ${coverGagalPesan}`,
+        fields: { cover: coverGagalPesan },
       };
     }
 
@@ -236,8 +244,16 @@ export async function saveArticle(
     // mengembalikan galat di sini akan meninggalkan formulir tanpa `postId`,
     // dan simpan berikutnya membuat baris kedua. Jadi tetap dialihkan, dengan
     // penanda supaya layar sunting bisa mengatakan apa yang gagal.
+    //
+    // Alasannya ikut dibawa di query, bukan sekadar penanda `cover=gagal`:
+    // sesudah `redirect()` proses ini berakhir, jadi tidak ada tempat lain
+    // untuk menitipkan kalimatnya. Dipotong 300 karakter supaya URL tetap
+    // wajar; seluruh pesan yang dihasilkan `pesanCover()` jauh di bawah itu.
     revalidatePublic();
-    redirect(`/admin/artikel/${data.id}?tersimpan=1${coverGagal ? "&cover=gagal" : ""}`);
+    const tandaCover = coverGagalPesan
+      ? `&cover=gagal&alasan=${encodeURIComponent(coverGagalPesan.slice(0, 300))}`
+      : "";
+    redirect(`/admin/artikel/${data.id}?tersimpan=1${tandaCover}`);
   }
 
   // ------------------------------------------------------------- artikel ada
@@ -588,12 +604,45 @@ export async function translateFormContent(formData: FormData): Promise<FormTran
   };
 }
 
-const PESAN_COVER: Record<string, string> = {
-  "too-large": "Berkas lebih dari 5 MB.",
-  "not-an-image": "Berkas ini bukan gambar.",
-  "unsupported-format": "Format tidak didukung — pakai JPEG, PNG, WebP, atau AVIF.",
-  "too-small": "Lebar gambar minimal 600 piksel.",
-};
+/** Byte → "8,4 MB". Koma desimal, karena seluruh dasbor berbahasa Indonesia. */
+function formatMB(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toLocaleString("id-ID", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} MB`;
+}
+
+/**
+ * Alasan penolakan → kalimat yang bisa ditindaklanjuti.
+ *
+ * Fungsi, bukan tabel teks tetap seperti sebelumnya, supaya angka nyata dari
+ * berkasnya ikut masuk. Tiga aturan yang dipegang tiap kalimat di bawah:
+ * sebut **apa yang salah**, sebut **angkanya berikut batasnya**, dan sebut
+ * **apa yang harus dilakukan**. Versi lama hanya memenuhi yang pertama —
+ * "Berkas lebih dari 5 MB" tidak memberi tahu berkasnya seberapa besar, jadi
+ * satu-satunya cara mematuhinya adalah menebak lalu mencoba lagi.
+ */
+function pesanCover(reason: CoverProcessingError, detail: CoverErrorDetail = {}): string {
+  switch (reason) {
+    case "too-large":
+      return detail.bytes
+        ? `Berkas ini ${formatMB(detail.bytes)}, melebihi batas ${formatMB(MAX_COVER_BYTES)}. Perkecil atau kompres gambarnya dulu, lalu pilih lagi.`
+        : `Berkas melebihi batas ${formatMB(MAX_COVER_BYTES)}. Perkecil atau kompres gambarnya dulu, lalu pilih lagi.`;
+    case "too-small":
+      return detail.width
+        ? `Lebar gambar ini ${detail.width} piksel, sedangkan minimalnya ${COVER_MIN_WIDTH} piksel. Pakai berkas asli yang lebih besar — memperbesar gambar kecil akan terlihat pecah saat jadi cover.`
+        : `Lebar gambar minimal ${COVER_MIN_WIDTH} piksel.`;
+    case "unsupported-format":
+      return detail.format
+        ? `Format ${detail.format.toUpperCase()} tidak didukung. Simpan ulang gambarnya sebagai JPEG, PNG, WebP, atau AVIF, lalu pilih lagi.`
+        : "Format ini tidak didukung. Pakai JPEG, PNG, WebP, atau AVIF.";
+    case "not-an-image":
+      // Sengaja menyebut kemungkinan penyebabnya: kasus paling sering adalah
+      // berkas yang ekstensinya benar tapi isinya bukan gambar — unduhan yang
+      // terpotong, atau PDF/dokumen yang diganti namanya.
+      return "Isi berkas ini tidak bisa dibaca sebagai gambar, meski namanya berakhiran gambar. Biasanya ini terjadi kalau unduhannya terpotong atau berkasnya sebenarnya bukan foto. Coba buka gambarnya, simpan ulang sebagai JPEG atau PNG, lalu pilih lagi.";
+  }
+}
 
 /**
  * Memproses satu berkas cover dan menaruhnya di Storage. Tidak menyentuh tabel.
@@ -630,7 +679,7 @@ async function unggahCover(
   // Ditolak lebih awal supaya 5 MB tidak perlu dibaca ke memori hanya untuk
   // kemudian dilempar.
   if (file.size > MAX_COVER_BYTES) {
-    return { ok: false, message: PESAN_COVER["too-large"]! };
+    return { ok: false, message: pesanCover("too-large", { bytes: file.size }) };
   }
 
   let processed;
@@ -638,10 +687,14 @@ async function unggahCover(
     processed = await processCoverImage(await file.arrayBuffer());
   } catch (err) {
     if (err instanceof CoverError) {
-      return { ok: false, message: PESAN_COVER[err.reason] ?? "Gambar tidak bisa diproses." };
+      return { ok: false, message: pesanCover(err.reason, err.detail) };
     }
     console.error("[unggah-cover] gagal diproses:", err);
-    return { ok: false, message: "Gambar tidak bisa diproses." };
+    return {
+      ok: false,
+      message:
+        "Gambar gagal diproses di server. Ini bukan soal berkas Anda — coba lagi sebentar lagi, dan kalau tetap gagal laporkan waktu kejadiannya.",
+    };
   }
 
   const path = buildCoverPath(slug);
@@ -651,7 +704,11 @@ async function unggahCover(
 
   if (error) {
     console.error("[unggah-cover] storage:", error.message);
-    return { ok: false, message: "Gagal mengunggah ke penyimpanan." };
+    return {
+      ok: false,
+      message:
+        "Gambarnya sendiri sudah benar, tapi gagal dikirim ke penyimpanan. Biasanya ini gangguan koneksi sesaat — coba simpan lagi.",
+    };
   }
 
   return { ok: true, path };
@@ -692,7 +749,7 @@ export async function uploadArticleImage(formData: FormData): Promise<ImageUploa
     return { ok: false, message: "Pilih berkas gambar dulu." };
   }
   if (file.size > MAX_COVER_BYTES) {
-    return { ok: false, message: PESAN_COVER["too-large"]! };
+    return { ok: false, message: pesanCover("too-large", { bytes: file.size }) };
   }
 
   let processed;
@@ -700,10 +757,14 @@ export async function uploadArticleImage(formData: FormData): Promise<ImageUploa
     processed = await processCoverImage(await file.arrayBuffer());
   } catch (err) {
     if (err instanceof CoverError) {
-      return { ok: false, message: PESAN_COVER[err.reason] ?? "Gambar tidak bisa diproses." };
+      return { ok: false, message: pesanCover(err.reason, err.detail) };
     }
     console.error("[unggah-gambar-isi] gagal diproses:", err);
-    return { ok: false, message: "Gambar tidak bisa diproses." };
+    return {
+      ok: false,
+      message:
+        "Gambar gagal diproses di server. Ini bukan soal berkas Anda — coba lagi sebentar lagi, dan kalau tetap gagal laporkan waktu kejadiannya.",
+    };
   }
 
   const path = buildBodyImagePath();
@@ -713,7 +774,11 @@ export async function uploadArticleImage(formData: FormData): Promise<ImageUploa
 
   if (error) {
     console.error("[unggah-gambar-isi] storage:", error.message);
-    return { ok: false, message: "Gagal mengunggah ke penyimpanan." };
+    return {
+      ok: false,
+      message:
+        "Gambarnya sendiri sudah benar, tapi gagal dikirim ke penyimpanan. Biasanya ini gangguan koneksi sesaat — coba sisipkan lagi.",
+    };
   }
 
   return { ok: true, path };

@@ -360,6 +360,7 @@ export function PostForm({
             id="cover"
             label={adminCopy.editor.coverChoose}
             hint={adminCopy.editor.coverHint}
+            error={fields.cover}
           >
             {(props) => (
               <div className="flex flex-col gap-3">

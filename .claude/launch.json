@@ -2,10 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "portfolio-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "D:\\Jek\\Project\\caca\\salsabilah-portfolio"
+    },
+    {
       "name": "portfolio-prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
-      "port": 3000,
+      "runtimeArgs": ["run", "start", "--", "--port", "3200"],
+      "port": 3200,
+      "autoPort": true,
       "cwd": "D:\\Jek\\Project\\caca\\salsabilah-portfolio"
     }
   ]

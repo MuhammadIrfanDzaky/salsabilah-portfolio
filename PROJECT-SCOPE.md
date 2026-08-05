@@ -216,6 +216,41 @@ dihapus. **Jangan menambahkan `loading.tsx` pada rute mana pun yang memanggil `n
 karenanya ikut menghasilkan soft 404, tapi seluruh `/admin` sudah `noindex` sehingga tidak ada
 mesin pencari yang menilainya.
 
+**Alasan penolakan cover dibuang di jalur artikel baru (ditemukan 2026-08-05, sudah diperbaiki):**
+`unggahCover()` sudah mengembalikan kalimat spesifik ("Berkas lebih dari 5 MB", "Lebar gambar
+minimal 600 piksel", dan seterusnya), dan jalur **sunting** meneruskannya apa adanya. Jalur
+**artikel baru** tidak: ia hanya menyalakan boolean `coverGagal` dan membuang `unggah.message`,
+lalu menampilkan *"Cover gagal diunggah, jadi artikelnya belum bisa terbit. Coba pilih gambarnya
+lagi."* — menyuruh mengulangi persis tindakan yang baru saja gagal, tanpa menyebut apa yang salah.
+Sebabnya sudah dihitung satu baris di atasnya. Sekarang alasannya disimpan (`coverGagalPesan`),
+ikut ke pesan galat **dan** ke `fields.cover` sehingga muncul tepat di bawah kolom covernya; jalur
+draft membawanya lewat query `?cover=gagal&alasan=…` karena setelah `redirect()` tidak ada tempat
+lain menitipkan kalimatnya. **Pelajarannya sama dengan bug terbit sebelumnya: dua jalur simpan
+yang menangani hal yang sama secara berbeda akan menyimpang, dan yang menyimpang diam-diam adalah
+yang jarang dilewati.**
+Pesannya sekaligus dinaikkan dari kategori jadi angka — `CoverError` kini membawa `detail`
+(`bytes`/`width`/`format`), sehingga layar berkata "Berkas ini 8,3 MB, melebihi batas 5,0 MB" dan
+"Lebar gambar ini 420 piksel, sedangkan minimalnya 600 piksel". Batas yang tidak disebut angkanya
+praktis tidak bisa dipatuhi. Terverifikasi 5/5 lewat `npm run uji:cover` — skrip itu **disimpan di
+`scripts/`, tidak dihapus setelah dijalankan**, justru karena #43 mencatat bahwa uji-uji sebelumnya
+hilang begitu selesai. Butuh `--conditions=react-server` sebab `covers.ts` mengimpor `server-only`.
+
+**`next dev` dengan webpack menjadikan setiap 404 sebagai 500 (ditemukan 2026-08-05, sudah
+diperbaiki):** dev server melempar *"not-found.tsx doesn't have a root layout"* dan menjawab
+**HTTP 500** untuk URL 404 apa pun. Penyebabnya struktural dan disengaja: project ini **tidak
+punya `src/app/layout.tsx`** — `<html>`/`<body>` dipegang `[locale]/layout.tsx` dan
+`admin/layout.tsx` masing-masing, sebagaimana didokumentasikan di kepala `not-found.tsx` dan
+`admin/layout.tsx`. Webpack dev menuntut root layout untuk `app/not-found.tsx`; **Turbopack
+tidak**. Skrip `dev` karena itu jadi `next dev --turbopack`. **Produksi tidak pernah terpengaruh**
+— diverifikasi pada build nyata: `/halaman-tidak-ada`, `/id/blog/tidak-ada`, dan `/id/apa-pun`
+ketiganya menjawab `404`, jadi klaim status 404 di #11 dan #46 tetap berdiri.
+**Yang membuat ini mahal bukan errornya, tapi penyamarannya:** overlay Next menampilkannya sebagai
+*Build Error* pada layar apa pun yang kebetulan sedang dibuka — pemilik menemuinya saat menyisipkan
+gambar di editor artikel — sehingga 404 asli yang memicunya tidak pernah terlihat. Kalau kelak ada
+yang tergoda "memperbaikinya" dengan menambahkan `src/app/layout.tsx`: itu memaksa `<html>` bersarang
+di dalam `<html>`, dan menyatukannya menuntut root layout membaca locale dari header — yang membuat
+seluruh rute dinamis dan **mematikan SSG**. Jangan.
+
 **Jendela ISR setelah ganti slug:** URL lama sempat menyajikan 200 basi, lalu 404 sesaat, sebelum
 mantap jadi 308 — sekitar 50 detik pada pengukuran 2026-07-27. Harga ISR, bukan kegagalan. Jangan
 panik dan jangan menambahkan `no-store` untuk "memperbaikinya".

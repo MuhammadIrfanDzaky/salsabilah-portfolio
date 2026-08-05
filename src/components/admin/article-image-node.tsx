@@ -17,6 +17,32 @@ import Image from "@tiptap/extension-image";
  * `src` menyimpan **path Storage**, bukan URL penuh. Kalau kelak bucket atau
  * domainnya berpindah, tidak ada satu pun dokumen yang perlu ditulis ulang.
  */
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+/**
+ * Path Storage → URL publik, khusus untuk `<img>` DI DALAM editor.
+ *
+ * Dokumennya tetap menyimpan path (lihat `renderHTML` di bawah: path ditulis ke
+ * `data-src`, dan `parseHTML` membaca `data-src` lebih dulu), jadi janji "kalau
+ * bucket berpindah tidak ada dokumen yang perlu ditulis ulang" tetap berlaku.
+ * Yang ditukar hanya atribut `src` yang dilihat browser.
+ *
+ * Tanpa ini `src` terkirim apa adanya, dan `isi/<uuid>.webp` adalah URL
+ * **relatif**: browser memintanya ke `/admin/artikel/isi/<uuid>.webp`, dapat
+ * 404, dan gambar yang baru disisipkan tampil rusak — padahal berkasnya sudah
+ * terunggah dengan benar dan artikel terbitnya tampil normal, karena sisi
+ * publik memang mengubahnya lewat `imageUrl()` di `post-doc.tsx`.
+ *
+ * Aturan "sudah URL → biarkan" disalin dari fungsi itu; keduanya harus tetap
+ * sama, dan `blob:` termasuk karena pratinjau lokal sebelum unggah selesai
+ * memakainya.
+ */
+function editorImageUrl(src: string): string {
+  if (!src) return src;
+  if (src.startsWith("/") || src.startsWith("http") || src.startsWith("blob:")) return src;
+  return `${SUPABASE_URL}/storage/v1/object/public/post-covers/${src}`;
+}
+
 export const ArticleImage = Image.extend({
   name: "image",
 
@@ -25,7 +51,12 @@ export const ArticleImage = Image.extend({
       src: {
         default: null,
         parseHTML: (element) => element.getAttribute("data-src") ?? element.getAttribute("src"),
-        renderHTML: (attributes) => ({ src: attributes.src as string }),
+        renderHTML: (attributes) => ({
+          src: editorImageUrl(attributes.src as string),
+          // Path aslinya, yang dibaca kembali oleh `parseHTML` di atas. Inilah
+          // yang membuat dokumen tersimpan tetap berisi path, bukan URL.
+          "data-src": attributes.src as string,
+        }),
       },
       altId: {
         default: "",

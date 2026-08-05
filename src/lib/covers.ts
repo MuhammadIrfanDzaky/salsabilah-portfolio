@@ -30,8 +30,28 @@ export type CoverProcessingError =
   | "unsupported-format"
   | "too-small";
 
+/**
+ * Angka terukur dari berkas yang ditolak.
+ *
+ * Ada supaya pesan di layar bisa menyebut **berapa** alih-alih sekadar
+ * "terlalu besar" atau "terlalu kecil". Tanpa ini, satu-satunya cara pengguna
+ * tahu berkasnya meleset seberapa jauh adalah menebak lalu mencoba lagi, dan
+ * batas yang tidak disebutkan angkanya praktis tidak bisa dipatuhi.
+ */
+export type CoverErrorDetail = {
+  /** Ukuran berkas masuk, byte. Diisi pada `too-large`. */
+  bytes?: number;
+  /** Lebar gambar masuk, piksel. Diisi pada `too-small`. */
+  width?: number;
+  /** Format hasil deteksi isi berkas — bukan ekstensi. Diisi pada `unsupported-format`. */
+  format?: string;
+};
+
 export class CoverError extends Error {
-  constructor(readonly reason: CoverProcessingError) {
+  constructor(
+    readonly reason: CoverProcessingError,
+    readonly detail: CoverErrorDetail = {},
+  ) {
     super(reason);
     this.name = "CoverError";
   }
@@ -54,7 +74,7 @@ export async function processCoverImage(input: ArrayBuffer | Buffer): Promise<Pr
   const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
 
   if (buffer.byteLength > MAX_COVER_BYTES) {
-    throw new CoverError("too-large");
+    throw new CoverError("too-large", { bytes: buffer.byteLength });
   }
 
   const pipeline = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS, animated: false });
@@ -66,13 +86,13 @@ export async function processCoverImage(input: ArrayBuffer | Buffer): Promise<Pr
   }
 
   if (!metadata.format || !ALLOWED_FORMATS.has(metadata.format)) {
-    throw new CoverError("unsupported-format");
+    throw new CoverError("unsupported-format", { format: metadata.format });
   }
   if (!metadata.width || !metadata.height) {
     throw new CoverError("not-an-image");
   }
   if (metadata.width < COVER_MIN_WIDTH) {
-    throw new CoverError("too-small");
+    throw new CoverError("too-small", { width: metadata.width });
   }
 
   const data = await pipeline

@@ -16,7 +16,7 @@ export default async function SuntingArtikelPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ cover?: string }>;
+  searchParams: Promise<{ cover?: string; alasan?: string }>;
 }) {
   const guard = await requireAdmin();
   if (!guard.ok) redirect("/admin/masuk");
@@ -24,8 +24,11 @@ export default async function SuntingArtikelPage({
   const { id } = await params;
   // Ditulis oleh `saveArticle` ketika artikelnya tersimpan tapi covernya tidak.
   // Alihannya tetap dilakukan supaya tidak lahir baris kedua; penandalah yang
-  // memberi tahu apa yang belum beres.
-  const coverGagal = (await searchParams).cover === "gagal";
+  // memberi tahu apa yang belum beres — berikut `alasan`, yang menyebut sebab
+  // persisnya (ukuran, format, atau lebar) alih-alih membiarkannya ditebak.
+  const query = await searchParams;
+  const coverGagal = query.cover === "gagal";
+  const coverAlasan = typeof query.alasan === "string" ? query.alasan.slice(0, 300) : "";
 
   const [{ data: post, error }, { data: categories }] = await Promise.all([
     guard.supabase.from("posts").select("*").eq("id", id).maybeSingle(),
@@ -70,6 +73,7 @@ export default async function SuntingArtikelPage({
             className="rounded-[12px] border border-accent-strong/40 bg-accent/10 px-4 py-3 text-[14px] text-ink"
           >
             {adminCopy.editor.coverFailedAfterSave}
+            {coverAlasan ? <> {coverAlasan}</> : null}
           </div>
         ) : null}
 
