@@ -30,6 +30,9 @@
   --hero-to: #efefe0;
   --nav-text: #39443b;
   --shadow-soft: 0 1px 2px rgba(32, 38, 30, 0.04), 0 18px 44px -22px rgba(46, 74, 56, 0.24);
+  /* Sengaja lebih dalam daripada --shadow-soft: bingkai foto hero harus
+     terangkat lebih jauh dari latar daripada kartu biasa yang memakai soft. */
+  --shadow-frame: 0 2px 6px rgba(32, 38, 30, 0.07), 0 30px 70px -30px rgba(46, 74, 56, 0.4);
 }
 
 .dark {
@@ -56,6 +59,9 @@
   --hero-to: #151c12;
   --nav-text: #c4cbba;
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 44px -22px rgba(0, 0, 0, 0.55);
+  /* Netral, bukan kehijauan: bayangan bernada hijau di atas #141913 tidak
+     terbaca sebagai bayangan, ia terbaca sebagai noda. */
+  --shadow-frame: 0 2px 6px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.75);
 }
 
 @theme inline {
@@ -82,6 +88,7 @@
   --font-sans: var(--font-inter), "Manrope", system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
   --shadow-soft: var(--shadow-soft);
+  --shadow-frame: var(--shadow-frame);
 }
 
 /* Exactly the sticky header height (h-[68px]), so an anchored section's top
