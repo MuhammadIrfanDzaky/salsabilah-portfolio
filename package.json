@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "uji:cover": "tsx --conditions=react-server scripts/uji-pesan-cover.mts"
+    "uji:cover": "tsx --conditions=react-server scripts/uji-pesan-cover.mts",
+    "uji:storage-url": "tsx scripts/uji-storage-url.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

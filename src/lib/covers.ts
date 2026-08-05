@@ -137,7 +137,16 @@ export function buildBodyImagePath(): string {
   return `isi/${crypto.randomUUID()}.webp`;
 }
 
-/** Public URL of a stored cover — the bucket is public, so no signing needed. */
-export function coverPublicUrl(supabaseUrl: string, coverPath: string): string {
-  return `${supabaseUrl}/storage/v1/object/public/post-covers/${coverPath}`;
-}
+/*
+ * `coverPublicUrl(supabaseUrl, coverPath)` dihapus 2026-08-05 saat rumus URL
+ * Storage disatukan ke `src/lib/storage-url.ts`.
+ *
+ * Ia tidak dipakai satu tempat pun — nol pemanggil di seluruh repo — dan
+ * satu-satunya yang dikandungnya adalah salinan kelima dari rumus yang sama,
+ * tanpa guard "sudah URL → biarkan" yang dipunyai tiga salinan lainnya.
+ * Mempertahankannya sebagai pembungkus tipis hanya akan menyisakan tanda tangan
+ * yang berbeda dari yang lain untuk dipilih orang berikutnya secara keliru.
+ *
+ * Penggantinya: `storagePublicUrl(baseUrl, path)`, atau `resolveImageSrc()`
+ * bila nilainya bisa saja sudah berupa URL.
+ */

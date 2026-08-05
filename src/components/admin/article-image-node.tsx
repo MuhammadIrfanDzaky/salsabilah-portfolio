@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "@tiptap/extension-image";
+import { BROWSER_SUPABASE_URL, resolveImageSrc } from "@/lib/storage-url";
 
 /**
  * Node gambar artikel dengan teks alternatif **dua bahasa**.
@@ -17,10 +18,8 @@ import Image from "@tiptap/extension-image";
  * `src` menyimpan **path Storage**, bukan URL penuh. Kalau kelak bucket atau
  * domainnya berpindah, tidak ada satu pun dokumen yang perlu ditulis ulang.
  */
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-
 /**
- * Path Storage → URL publik, khusus untuk `<img>` DI DALAM editor.
+ * Path Storage → URL publik, untuk `<img>` DI DALAM editor.
  *
  * Dokumennya tetap menyimpan path (lihat `renderHTML` di bawah: path ditulis ke
  * `data-src`, dan `parseHTML` membaca `data-src` lebih dulu), jadi janji "kalau
@@ -30,17 +29,13 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
  * Tanpa ini `src` terkirim apa adanya, dan `isi/<uuid>.webp` adalah URL
  * **relatif**: browser memintanya ke `/admin/artikel/isi/<uuid>.webp`, dapat
  * 404, dan gambar yang baru disisipkan tampil rusak — padahal berkasnya sudah
- * terunggah dengan benar dan artikel terbitnya tampil normal, karena sisi
- * publik memang mengubahnya lewat `imageUrl()` di `post-doc.tsx`.
+ * terunggah dengan benar dan artikel terbitnya tampil normal.
  *
- * Aturan "sudah URL → biarkan" disalin dari fungsi itu; keduanya harus tetap
- * sama, dan `blob:` termasuk karena pratinjau lokal sebelum unggah selesai
- * memakainya.
+ * Aturannya kini dibagi dengan sisi publik lewat `resolveImageSrc()`; dulu
+ * disalin, dan salinan itulah yang sempat menyimpang.
  */
 function editorImageUrl(src: string): string {
-  if (!src) return src;
-  if (src.startsWith("/") || src.startsWith("http") || src.startsWith("blob:")) return src;
-  return `${SUPABASE_URL}/storage/v1/object/public/post-covers/${src}`;
+  return resolveImageSrc(BROWSER_SUPABASE_URL, src);
 }
 
 export const ArticleImage = Image.extend({

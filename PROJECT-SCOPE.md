@@ -216,6 +216,23 @@ dihapus. **Jangan menambahkan `loading.tsx` pada rute mana pun yang memanggil `n
 karenanya ikut menghasilkan soft 404, tapi seluruh `/admin` sudah `noindex` sehingga tidak ada
 mesin pencari yang menilainya.
 
+**Rumus URL Storage disatukan ke `src/lib/storage-url.ts` (2026-08-05):** sebelumnya ditulis ulang
+di **empat** tempat (`post-doc.tsx`, `blog.ts`, `covers.ts`, `article-image-node.tsx`), ditambah
+**delapan** literal `"post-covers"` di `artikel/actions.ts` dan **dua** salinan aturan "sudah URL →
+bukan objek Storage" di jalur hapus. Bucket ini dipakai cover **dan** gambar isi (awalan `isi/`),
+jadi bucket atau host yang berpindah dengan satu pemanggil terlewat menghasilkan gambar rusak di
+satu permukaan saja — **tanpa error apa pun**. Keempatnya ternyata **tidak identik**, dan dua
+perbedaannya disengaja sehingga ditulis sebagai komentar, bukan dihapus: (1) `blog.ts` memakai
+`SUPABASE_URL` dari `env.ts` yang **melempar** bila kosong, sementara sisi yang ikut ke peramban
+memakai `?? ""` yang diam — lemparan di peramban terjadi saat render dan mematikan seluruh editor,
+padahal akibat sebenarnya cuma gambar tidak tampil; (2) `coverUrl()` menerima dan mengembalikan
+`null` karena `cover_path` memang nullable. Satu perbedaan **tidak** disengaja dan diperbaiki:
+guard `coverUrl()` tidak mengenal `blob:` — memperluas guard, tidak mengubah perilaku nyata karena
+`blob:` tidak pernah tersimpan sebagai `cover_path`. `coverPublicUrl()` di `covers.ts` **dihapus**:
+nol pemanggil di seluruh repo, dan isinya salinan kelima tanpa guard sama sekali. Terverifikasi
+28/28 lewat `npm run uji:storage-url`, yang membandingkan helper baru terhadap salinan verbatim
+keempat implementasi lama untuk masukan yang sama; bundel `/[locale]/blog/[slug]` tetap 124 kB.
+
 **Alasan penolakan cover dibuang di jalur artikel baru (ditemukan 2026-08-05, sudah diperbaiki):**
 `unggahCover()` sudah mengembalikan kalimat spesifik ("Berkas lebih dari 5 MB", "Lebar gambar
 minimal 600 piksel", dan seterusnya), dan jalur **sunting** meneruskannya apa adanya. Jalur

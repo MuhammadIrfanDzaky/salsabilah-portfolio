@@ -2,6 +2,7 @@ import "server-only";
 
 import { createPublicClient } from "@/lib/supabase/server";
 import { SUPABASE_URL } from "@/lib/supabase/env";
+import { resolveImageSrc } from "@/lib/storage-url";
 import type { Locale } from "@/lib/i18n";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -41,11 +42,25 @@ export type PostListItem = Pick<
  * Seed rows store a leading-slash path pointing at `public/`; real uploads
  * store a Supabase Storage key. Distinguishing on the leading slash keeps the
  * dummy content working without a second column.
+ *
+ * Dua hal yang sengaja berbeda dari pemanggil `resolveImageSrc()` lainnya:
+ *
+ *   1. `SUPABASE_URL` di sini datang dari `@/lib/supabase/env`, yang MELEMPAR
+ *      bila variabelnya kosong — bukan `BROWSER_SUPABASE_URL` yang diam. File
+ *      ini `server-only`, jadi gagal keras saat start adalah yang benar
+ *      (kompetensi #29); yang tidak boleh gagal keras hanya kode yang ikut ke
+ *      peramban.
+ *   2. Tanda tangannya menerima dan mengembalikan `null`, karena `cover_path`
+ *      memang nullable di database. Artikel tanpa cover bukan kesalahan.
+ *
+ * Yang berubah saat disatukan: nilai berawalan `blob:` kini ikut dilewatkan apa
+ * adanya. Itu memperluas guard, bukan mempersempitnya, dan tidak mengubah
+ * perilaku nyata — `blob:` hanya ada di peramban sebelum unggahan selesai dan
+ * tidak pernah tersimpan sebagai `cover_path`.
  */
 export function coverUrl(coverPath: string | null): string | null {
   if (!coverPath) return null;
-  if (coverPath.startsWith("/") || coverPath.startsWith("http")) return coverPath;
-  return `${SUPABASE_URL}/storage/v1/object/public/post-covers/${coverPath}`;
+  return resolveImageSrc(SUPABASE_URL, coverPath);
 }
 
 export function localized<T extends Record<string, unknown>>(

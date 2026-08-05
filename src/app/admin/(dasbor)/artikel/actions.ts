@@ -16,6 +16,7 @@ import {
   processCoverImage,
 } from "@/lib/covers";
 import { RATE_LIMITS, consumeRateLimit } from "@/lib/rate-limit";
+import { IMAGE_BUCKET, isOwnedStoragePath } from "@/lib/storage-url";
 import type { Locale } from "@/lib/i18n";
 import { translateArticle, type TranslateDeps } from "@/lib/translate";
 import type { Json, TablesUpdate } from "@/lib/supabase/database.types";
@@ -236,7 +237,7 @@ export async function saveArticle(
     if (error) {
       // Barisnya gagal lahir, jadi covernya tidak dirujuk siapa pun. Dibuang
       // daripada meninggalkan berkas yang tidak akan pernah ditemukan lagi.
-      if (coverPath) await guard.supabase.storage.from("post-covers").remove([coverPath]);
+      if (coverPath) await guard.supabase.storage.from(IMAGE_BUCKET).remove([coverPath]);
       return { ok: false, message: describeDbError(error, "simpan-artikel-baru") };
     }
 
@@ -333,7 +334,7 @@ export async function saveArticle(
 
   if (error) {
     // Update gagal, jadi covernya tidak dirujuk siapa pun.
-    if (coverBaruPath) await guard.supabase.storage.from("post-covers").remove([coverBaruPath]);
+    if (coverBaruPath) await guard.supabase.storage.from(IMAGE_BUCKET).remove([coverBaruPath]);
     return { ok: false, message: describeDbError(error, "simpan-artikel") };
   }
 
@@ -341,8 +342,8 @@ export async function saveArticle(
   // urutan sebaliknya menyisakan artikel tanpa gambar bila update gagal.
   if (coverBaruPath) {
     const lama = existing.cover_path;
-    if (lama && !lama.startsWith("/") && !lama.startsWith("http") && lama !== coverBaruPath) {
-      await guard.supabase.storage.from("post-covers").remove([lama]);
+    if (lama && isOwnedStoragePath(lama) && lama !== coverBaruPath) {
+      await guard.supabase.storage.from(IMAGE_BUCKET).remove([lama]);
     }
   }
 
@@ -475,11 +476,11 @@ export async function deletePostPermanently(
     ...collectImagePaths(sanitizeDoc(post.doc_en)),
   ].filter((path) => path.startsWith("isi/"));
   if (gambarIsi.length > 0) {
-    await guard.supabase.storage.from("post-covers").remove([...new Set(gambarIsi)]);
+    await guard.supabase.storage.from(IMAGE_BUCKET).remove([...new Set(gambarIsi)]);
   }
 
-  if (post.cover_path && !post.cover_path.startsWith("/") && !post.cover_path.startsWith("http")) {
-    await guard.supabase.storage.from("post-covers").remove([post.cover_path]);
+  if (post.cover_path && isOwnedStoragePath(post.cover_path)) {
+    await guard.supabase.storage.from(IMAGE_BUCKET).remove([post.cover_path]);
   }
 
   revalidatePublic();
@@ -699,7 +700,7 @@ async function unggahCover(
 
   const path = buildCoverPath(slug);
   const { error } = await guard.supabase.storage
-    .from("post-covers")
+    .from(IMAGE_BUCKET)
     .upload(path, processed.data, { contentType: processed.contentType, upsert: false });
 
   if (error) {
@@ -769,7 +770,7 @@ export async function uploadArticleImage(formData: FormData): Promise<ImageUploa
 
   const path = buildBodyImagePath();
   const { error } = await guard.supabase.storage
-    .from("post-covers")
+    .from(IMAGE_BUCKET)
     .upload(path, processed.data, { contentType: processed.contentType, upsert: false });
 
   if (error) {
@@ -804,7 +805,7 @@ async function bersihkanGambarYatim(
   const yatim = [...lama].filter((path) => !baru.has(path) && path.startsWith("isi/"));
   if (yatim.length === 0) return;
 
-  const { error } = await guard.supabase.storage.from("post-covers").remove(yatim);
+  const { error } = await guard.supabase.storage.from(IMAGE_BUCKET).remove(yatim);
   // Kegagalan di sini tidak boleh menggagalkan penyimpanan artikel: yang
   // tertinggal cuma berkas tak terpakai, sedangkan tulisannya sudah aman.
   if (error) console.error("[gambar-yatim] gagal dibuang:", error.message);

@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import type { Doc, DocMark, DocNode } from "@/lib/doc";
 import type { Locale } from "@/lib/i18n";
+import { BROWSER_SUPABASE_URL, resolveImageSrc } from "@/lib/storage-url";
 
 /**
  * Renderer dokumen isi artikel.
@@ -19,12 +20,15 @@ import type { Locale } from "@/lib/i18n";
  * yang dilihat Salsabilah saat menulis benar-benar yang akan terbit.
  */
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-
-/** Path Storage → URL publik. Nilai yang sudah berupa URL dibiarkan apa adanya. */
+/**
+ * Path Storage → URL publik. Nilai yang sudah berupa URL dibiarkan apa adanya.
+ *
+ * Host-nya `BROWSER_SUPABASE_URL`, bukan `SUPABASE_URL` dari `env.ts`: komponen
+ * ini ikut ke bundel klien lewat `post-form.tsx`, dan versi yang melempar akan
+ * mematikan pratinjau editor saat variabelnya kosong.
+ */
 function imageUrl(src: string): string {
-  if (src.startsWith("/") || src.startsWith("http") || src.startsWith("blob:")) return src;
-  return `${SUPABASE_URL}/storage/v1/object/public/post-covers/${src}`;
+  return resolveImageSrc(BROWSER_SUPABASE_URL, src);
 }
 
 /** Membungkus teks dengan mark-nya, dari dalam ke luar. */
