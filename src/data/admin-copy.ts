@@ -36,6 +36,18 @@ export const adminCopy = {
     signOut: "Keluar",
   },
 
+  /**
+   * Label penyetel tema. Semuanya dipakai sebagai `aria-label`/`title`, bukan
+   * teks yang terlihat — tombolnya hanya berisi ikon, jadi inilah satu-satunya
+   * nama yang dibacakan pembaca layar.
+   */
+  tema: {
+    group: "Tema tampilan",
+    sistem: "Ikuti setelan perangkat",
+    terang: "Tampilan terang",
+    gelap: "Tampilan gelap",
+  },
+
   moderation: {
     title: "Komentar",
     lead: "Komentar tayang tanpa ditinjau lebih dulu. Menghapus di sini bersifat lunak — isinya tetap tersimpan dan bisa dipulihkan.",

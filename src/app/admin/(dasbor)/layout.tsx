@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ThemeSwitch } from "@/components/admin/theme-switch";
 import { adminCopy } from "@/data/admin-copy";
 import { requireAdmin } from "@/lib/admin/guard";
+import { bacaTemaAdmin } from "@/lib/admin/tema";
 import { signOut } from "../masuk/actions";
 
 /**
@@ -34,6 +36,8 @@ export default async function DasborLayout({ children }: { children: React.React
   const guard = await requireAdmin();
   if (!guard.ok) redirect("/admin/masuk");
 
+  const tema = await bacaTemaAdmin();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-line">
@@ -64,6 +68,7 @@ export default async function DasborLayout({ children }: { children: React.React
             >
               {adminCopy.nav.newPost}
             </Link>
+            <ThemeSwitch aktif={tema} />
             <form action={signOut}>
               <button
                 type="submit"

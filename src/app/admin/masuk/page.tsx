@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { ThemeSwitch } from "@/components/admin/theme-switch";
 import { adminCopy } from "@/data/admin-copy";
 import { requireAdmin, safeNextPath } from "@/lib/admin/guard";
+import { bacaTemaAdmin } from "@/lib/admin/tema";
 import { LoginForm } from "./login-form";
 
 /**
@@ -21,8 +23,18 @@ export default async function MasukPage({
   const guard = await requireAdmin();
   if (guard.ok) redirect(next);
 
+  const tema = await bacaTemaAdmin();
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
+    <main className="relative flex min-h-screen items-center justify-center px-6 py-12">
+      {/* Penyetel tema tersedia SEBELUM masuk, bukan hanya di dalam dasbor.
+          Halaman ini yang paling sering dibuka di ruangan gelap, dan memaksa
+          orang menembus satu layar putih terang dulu demi mencapai tombolnya
+          adalah urutan yang terbalik. */}
+      <div className="absolute right-6 top-6">
+        <ThemeSwitch aktif={tema} />
+      </div>
+
       <div className="w-full max-w-[380px]">
         <p className="m-0 mb-3 flex items-center gap-3.5 font-mono text-[12px] uppercase tracking-[0.14em] text-accent-strong">
           <span aria-hidden="true" className="h-px w-9 flex-none bg-sand" />

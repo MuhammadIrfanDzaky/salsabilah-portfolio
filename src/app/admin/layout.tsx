@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
 import { adminCopy } from "@/data/admin-copy";
+import { bacaTemaAdmin } from "@/lib/admin/tema";
 import "../globals.css";
 
 /**
@@ -36,12 +37,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * Mode gelap tanpa JavaScript.
+ * Mode gelap tanpa JavaScript, untuk pilihan tema "sistem".
  *
  * Situs publik menukar tema lewat kelas `.dark` yang dipasang next-themes.
- * Dasbor tidak memasang provider itu — satu pengguna, satu perangkat, tidak
- * perlu penyetel tema — jadi tanpa blok ini dasbor akan selalu terang meski
- * sistemnya gelap. Nilainya disalin dari blok `.dark` di globals.css.
+ * Dasbor tidak memasang provider itu; sejak 2026-08-05 ia punya penyetel
+ * sendiri berbasis cookie (lihat `@/lib/admin/tema`), dan blok ini melayani
+ * satu kasus saja: saat pilihannya "sistem", yaitu mengikuti
+ * `prefers-color-scheme`. Nilainya disalin dari blok `.dark` di globals.css.
+ *
+ * **Hanya disuntikkan pada mode "sistem", dan itu wajib.** Kalau blok ini ikut
+ * terpasang saat seseorang memilih "terang", `@media (prefers-color-scheme:
+ * dark)` akan tetap memaksa gelap di perangkat yang setelan sistemnya gelap —
+ * tombol Terang akan terlihat tertekan sementara layarnya tidak berubah sama
+ * sekali, kegagalan yang tidak memunculkan error apa pun.
  *
  * Selektornya `html:root`, bukan `:root`: spesifisitasnya lebih tinggi
  * sehingga menang atas globals.css berapa pun urutan penyisipan stylesheet.
@@ -71,12 +79,27 @@ const darkTokens = `
 }
 `;
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const tema = await bacaTemaAdmin();
+
   return (
-    <html lang="id" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
-      <head>
-        <style>{darkTokens}</style>
-      </head>
+    <html
+      lang="id"
+      className={[
+        fraunces.variable,
+        inter.variable,
+        plexMono.variable,
+        // Kelas `.dark` yang sama dengan situs publik, jadi tokennya datang
+        // dari satu blok di globals.css alih-alih disalin lagi ke sini.
+        tema === "gelap" ? "dark" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      // `color-scheme` memberi tahu peramban warna bawaan scrollbar dan kontrol
+      // form. Tanpa ini, dasbor gelap tetap punya kolom input putih terang.
+      style={{ colorScheme: tema === "sistem" ? "light dark" : tema === "gelap" ? "dark" : "light" }}
+    >
+      <head>{tema === "sistem" ? <style>{darkTokens}</style> : null}</head>
       <body>{children}</body>
     </html>
   );

@@ -216,6 +216,28 @@ dihapus. **Jangan menambahkan `loading.tsx` pada rute mana pun yang memanggil `n
 karenanya ikut menghasilkan soft 404, tapi seluruh `/admin` sudah `noindex` sehingga tidak ada
 mesin pencari yang menilainya.
 
+**Penyetel tema dasbor, berbasis cookie dan tanpa JavaScript (2026-08-05):** dasbor kini punya
+saklar Sistem/Terang/Gelap yang tersedia **sejak halaman masuk**, mengubah keputusan lama bahwa
+"satu pengguna, satu perangkat, tidak perlu penyetel tema". Sengaja **tidak** memakai `next-themes`
+seperti situs publik — dan alasannya bukan CSP, karena `script-src` dasbor memang sudah
+mengizinkan `'unsafe-inline'`. Alasannya: nol JavaScript tambahan (`/admin/masuk` naik 3,31 → 3,36 kB,
+seluruhnya markup), nol kedipan karena servernya sudah tahu temanya sebelum paint, dan tidak ada
+sumber kebenaran kedua. Pilihannya disimpan di cookie `admin-tema` (`httpOnly`, `path=/admin`
+sehingga tidak ikut terkirim pada permintaan publik yang disajikan dari cache), dibaca di
+`admin/layout.tsx`, dan diubah lewat Server Action `setTemaAdmin`.
+**`setTemaAdmin` adalah satu-satunya Server Action dasbor tanpa `requireAdmin()`, dan itu
+disengaja** — ia harus bisa dipakai sebelum ada sesi, tidak menyentuh database/Storage/sesi, dan
+nilainya divalidasi terhadap enum tertutup. Kalau kelak ia menyimpan preferensi ke tabel, gate-nya
+wajib dipasang dan penyetel di halaman masuk harus dipisah.
+**Jebakan yang dijaga dan sudah diuji:** blok `@media (prefers-color-scheme: dark)` di layout hanya
+disuntikkan pada mode `sistem`. Kalau ikut terpasang saat orang memilih Terang, perangkat bersetelan
+gelap akan tetap dipaksa gelap — tombolnya terlihat tertekan sementara layarnya tidak berubah, dan
+tidak ada error apa pun yang muncul. `sistem` diwakili oleh **ketiadaan** cookie, jadi perilaku
+bawaannya identik dengan sebelum fitur ini ada. Terverifikasi lewat UI: Terang di perangkat gelap →
+`#faf7f0` dan blok `@media` lepas; Gelap di perangkat terang → `#141913`; kembali ke Sistem → blok
+`@media` terpasang lagi dan mengikuti perangkat; pilihan bertahan setelah muat ulang penuh; cookie
+tidak terbaca dari JavaScript; HTML publik tidak memuat jejak `admin-tema`.
+
 **Rumus URL Storage disatukan ke `src/lib/storage-url.ts` (2026-08-05):** sebelumnya ditulis ulang
 di **empat** tempat (`post-doc.tsx`, `blog.ts`, `covers.ts`, `article-image-node.tsx`), ditambah
 **delapan** literal `"post-covers"` di `artikel/actions.ts` dan **dua** salinan aturan "sudah URL →
